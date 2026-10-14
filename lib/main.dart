@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:mobile_app/view/profile_view.dart';
 
 import 'core/theme/app_theme.dart';
 import 'view/dashboard_view.dart';
@@ -17,7 +18,7 @@ class MintApp extends StatelessWidget {
       title: 'Mint',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const DashboardView(),
+      home: const ProfileView(),
     );
   }
 }
