@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../mock/mock_users.dart';
+
 import '../model/user_model.dart';
+import '../service/mock_auth_service.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final TextEditingController userController = TextEditingController();
@@ -9,13 +10,11 @@ class LoginViewModel extends ChangeNotifier {
   bool obscurePassword = true;
   String? errorMessage;
 
-  // Contraseña mockeada por defecto para el taller
-  static String mockPassword = 'Mint1234';
+  // Compatibilidad con el RegisterViewModel actual.
+  static final List<UserModel> registeredUsers =
+      MockAuthService.registeredUsers;
 
-  // Lista en memoria que incluye al usuario de tu compañera + los que se registren en Flujo 1
-  static final List<UserModel> registeredUsers = [
-    MockUsers.currentUser,
-  ];
+  static const String mockPassword = MockAuthService.defaultPassword;
 
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
@@ -29,47 +28,76 @@ class LoginViewModel extends ChangeNotifier {
     }
   }
 
-  // Flujo 2: Validar usuario (correo, nombre o cédula) y contraseña
   bool login() {
-    final inputUser = userController.text.trim().toLowerCase();
+    final inputUser = userController.text.trim();
     final inputPass = passwordController.text;
 
     if (inputUser.isEmpty || inputPass.isEmpty) {
+      errorMessage = 'Ingresa tu usuario y contraseña';
+      notifyListeners();
+      return false;
+    }
+
+    final success = MockAuthService.login(inputUser, inputPass);
+
+    if (!success) {
       errorMessage = 'Usuario o contraseña incorrectos';
       notifyListeners();
       return false;
     }
 
-    for (final user in registeredUsers) {
-      final emailPrefix = user.email.split('@').first.toLowerCase();
-      final matchesUser = user.identification == inputUser ||
-          user.email.toLowerCase() == inputUser ||
-          user.firstName.toLowerCase() == inputUser ||
-          emailPrefix == inputUser;
-
-      if (matchesUser && inputPass == mockPassword) {
-        errorMessage = null;
-        notifyListeners();
-        return true;
-      }
-    }
-
-    errorMessage = 'Usuario o contraseña incorrectos';
+    errorMessage = null;
     notifyListeners();
-    return false;
+    return true;
   }
 
-  // Flujo 3: Simulación de ingreso con huella
+  bool get canUseFingerprint {
+    final user = MockAuthService.findUser(userController.text);
+
+    if (user == null) return false;
+
+    return MockAuthService.isFingerprintEnabled(user.id);
+  }
+
   bool loginWithFingerprint({required bool isRecognized}) {
-    if (isRecognized) {
-      errorMessage = null;
+    final inputUser = userController.text.trim();
+
+    if (inputUser.isEmpty) {
+      errorMessage = 'Ingresa tu usuario o cédula primero';
       notifyListeners();
-      return true;
-    } else {
+      return false;
+    }
+
+    final user = MockAuthService.findUser(inputUser);
+
+    if (user == null) {
+      errorMessage = 'Usuario no encontrado';
+      notifyListeners();
+      return false;
+    }
+
+    if (!MockAuthService.isFingerprintEnabled(user.id)) {
+      errorMessage =
+      'El ingreso con huella está desactivado para este usuario';
+      notifyListeners();
+      return false;
+    }
+
+    if (!isRecognized) {
       errorMessage = 'Huella no reconocida';
       notifyListeners();
       return false;
     }
+
+    final success = MockAuthService.loginWithFingerprint(
+      input: inputUser,
+      isRecognized: true,
+    );
+
+    errorMessage = success ? null : 'No se pudo iniciar sesión';
+    notifyListeners();
+
+    return success;
   }
 
   @override

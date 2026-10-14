@@ -1,10 +1,10 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
 import '../model/account_model.dart';
+import '../model/transaction_model.dart';
 import '../service/account_service.dart';
 import '../viewModel/dashboard_view_model.dart';
 import '../widget/account_card.dart';
@@ -12,6 +12,7 @@ import '../widget/dashboard_bottom_nav.dart';
 import '../widget/dashboard_header.dart';
 import '../widget/transaction_tile.dart';
 
+import 'movements_view.dart';
 import 'transaction_detail_view.dart';
 
 class DashboardView extends StatefulWidget {
@@ -33,9 +34,7 @@ class _DashboardViewState extends State<DashboardView> {
 
     _viewModel = DashboardViewModel(AccountService());
 
-    _viewModel.loadDashboard(
-      MockUsers.currentUser.id,
-    );
+    _viewModel.loadDashboard(MockUsers.currentUser.id);
   }
 
   @override
@@ -44,6 +43,7 @@ class _DashboardViewState extends State<DashboardView> {
     super.dispose();
   }
 
+  // Obtener la cuenta seleccionada.
   AccountModel? _getSelectedAccount() {
     if (_viewModel.accounts.isEmpty) {
       return null;
@@ -58,18 +58,21 @@ class _DashboardViewState extends State<DashboardView> {
     return _viewModel.accounts.first;
   }
 
+  // Seleccionar una cuenta.
   void _selectAccount(String accountId) {
     setState(() {
       _selectedAccountId = accountId;
     });
   }
 
+  // Mostrar u ocultar saldos y números de cuenta.
   void _toggleBalanceVisibility() {
     setState(() {
       _showBalance = !_showBalance;
     });
   }
 
+  // Buscar una cuenta por su ID.
   AccountModel? _getAccountById(String accountId) {
     for (final account in _viewModel.accounts) {
       if (account.id == accountId) {
@@ -80,13 +83,37 @@ class _DashboardViewState extends State<DashboardView> {
     return null;
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$feature estará disponible próximamente',
+  // Cambiar de Inicio a la pestaña Movimientos.
+  void _openMovements() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovementsView(
+          transactions: _viewModel.transactions,
+          accounts: _viewModel.accounts,
         ),
       ),
+    );
+  }
+
+  // Abrir el detalle de una transacción.
+  void _openTransactionDetail(TransactionModel transaction) {
+    final transactionAccount = _getAccountById(transaction.accountId);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TransactionDetailView(
+          transaction: transaction,
+          account: transactionAccount,
+        ),
+      ),
+    );
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature estará disponible próximamente')),
     );
   }
 
@@ -95,25 +122,31 @@ class _DashboardViewState extends State<DashboardView> {
     return Scaffold(
       backgroundColor: AppColors.background,
 
-      // Barra de navegación inferior
       bottomNavigationBar: DashboardBottomNav(
         selectedIndex: 0,
         onItemSelected: (index) {
+          // Inicio
           if (index == 0) {
             return;
           }
 
-          if (index == 3) {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.profile,
-            );
+          // Movimientos
+          if (index == 1) {
+            _openMovements();
             return;
           }
 
-          _showComingSoon(
-            index == 1 ? 'Movimientos' : 'Pagos',
-          );
+          // Pagos
+          if (index == 2) {
+            _showComingSoon('Pagos');
+            return;
+          }
+
+          // Perfil
+          if (index == 3) {
+            Navigator.pushNamed(context, AppRoutes.profile);
+            return;
+          }
         },
       ),
 
@@ -122,9 +155,7 @@ class _DashboardViewState extends State<DashboardView> {
           listenable: _viewModel,
           builder: (context, child) {
             if (_viewModel.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             if (_viewModel.errorMessage != null) {
@@ -143,15 +174,12 @@ class _DashboardViewState extends State<DashboardView> {
 
             return RefreshIndicator(
               onRefresh: () {
-                return _viewModel.loadDashboard(
-                  MockUsers.currentUser.id,
-                );
+                return _viewModel.loadDashboard(MockUsers.currentUser.id);
               },
-
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  // Encabezado: saludo y saldo total
+                  // ENCABEZADO
                   DashboardHeader(
                     user: MockUsers.currentUser,
                     totalBalance: _viewModel.totalBalance,
@@ -162,11 +190,9 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 24),
 
-                  // Mis cuentas
+                  // MIS CUENTAS
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -194,15 +220,11 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 12),
 
-                  // Tarjetas bancarias giratorias
+                  // TARJETAS BANCARIAS
                   if (_viewModel.accounts.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      child: Text(
-                        'No tienes cuentas registradas',
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('No tienes cuentas registradas'),
                     )
                   else
                     SizedBox(
@@ -241,11 +263,9 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 24),
 
-                  // Últimos movimientos
+                  // ÚLTIMOS MOVIMIENTOS
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -263,12 +283,14 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
 
                             TextButton(
-                              onPressed: () {
-                                _showComingSoon(
-                                  'Pantalla de movimientos',
-                                );
-                              },
-                              child: const Text('Ver todo'),
+                              onPressed: _openMovements,
+                              child: const Text(
+                                'Ver todo',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -276,46 +298,25 @@ class _DashboardViewState extends State<DashboardView> {
                         const SizedBox(height: 12),
 
                         if (_viewModel.transactions.isEmpty)
-                          const Text(
-                            'No tienes movimientos recientes',
-                          )
+                          const Text('No tienes movimientos recientes')
                         else
-                          ..._viewModel.transactions.map(
-                                (transaction) {
-                              final transactionAccount =
-                              _getAccountById(
-                                transaction.accountId,
-                              );
-
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: 8,
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius:
-                                    BorderRadius.circular(16),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              TransactionDetailView(
-                                                transaction: transaction,
-                                                account: transactionAccount,
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: TransactionTile(
-                                      transaction: transaction,
-                                    ),
+                          ..._viewModel.transactions.map((transaction) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(16),
+                                  onTap: () {
+                                    _openTransactionDetail(transaction);
+                                  },
+                                  child: TransactionTile(
+                                    transaction: transaction,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          }),
 
                         const SizedBox(height: 24),
                       ],

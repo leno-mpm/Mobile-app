@@ -1,15 +1,18 @@
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
 import '../model/user_model.dart';
+import '../service/mock_auth_service.dart';
 import '../service/user_service.dart';
 import '../viewModel/profile_view_model.dart';
+import '../viewModel/security_view_model.dart';
 import '../widget/dashboard_bottom_nav.dart';
+import 'policies_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -20,123 +23,469 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   late final ProfileViewModel _viewModel;
+  late final SecurityViewModel _securityViewModel;
 
   final ImagePicker _imagePicker = ImagePicker();
-
   File? _profileImage;
 
   @override
   void initState() {
     super.initState();
+
+    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+
     _viewModel = ProfileViewModel(UserService());
-    _viewModel.loadProfile(MockUsers.currentUser.id);
+    _securityViewModel = SecurityViewModel(userId);
+
+    _viewModel.loadProfile(userId);
   }
 
   @override
   void dispose() {
     _viewModel.dispose();
+    _securityViewModel.dispose();
     super.dispose();
   }
 
-  // Obtener las iniciales del usuario
   String _getInitials(UserModel user) {
     final first = user.firstName.trim();
     final last = user.lastName.trim();
 
-    return '${first.isNotEmpty ? first[0] : ''}'
-        '${last.isNotEmpty ? last[0] : ''}'
-        .toUpperCase();
+    final firstInitial = first.isNotEmpty ? first[0] : '';
+    final lastInitial = last.isNotEmpty ? last[0] : '';
+
+    return '$firstInitial$lastInitial'.toUpperCase();
   }
 
-  // Mostrar mensaje para funcionalidades pendientes
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature estará disponible próximamente')));
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // Seleccionar foto desde la galería
   Future<void> _changeProfilePhoto() async {
     try {
-      final XFile? selectedImage = await _imagePicker.pickImage(
+      final selectedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
         maxWidth: 1024,
       );
 
-      // El usuario canceló la selección
-      if (selectedImage == null) {
-        return;
-      }
-      if (!mounted) return;
+      if (selectedImage == null || !mounted) return;
+
       setState(() {
         _profileImage = File(selectedImage.path);
       });
+
+      _showMessage('Foto de perfil actualizada');
     } catch (e) {
-      debugPrint('Error al seleccionar foto: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo seleccionar la imagen')));
+      _showMessage('No se pudo seleccionar la imagen');
     }
   }
 
-  // Mostrar opciones para cambiar o eliminar la foto
-  Future<void> _showPhotoOptions() async {
-    await showModalBottomSheet<void>(
+  // ============================================================
+  // CAMBIAR CONTRASEÑA
+  // ============================================================
+
+  Future<void> _showChangePasswordDialog() async {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final formKey = GlobalKey<FormState>();
+
+    // Actualiza los requisitos mientras se escribe.
+    final newPasswordNotifier = ValueNotifier<String>('');
+
+    // Controla si se muestran las contraseñas.
+    final currentVisible = ValueNotifier<bool>(false);
+    final newVisible = ValueNotifier<bool>(false);
+    final confirmVisible = ValueNotifier<bool>(false);
+
+    try {
+      final result = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Cambiar contraseña',
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // CONTRASEÑA ACTUAL
+                      ValueListenableBuilder<bool>(
+                        valueListenable: currentVisible,
+                        builder: (context, visible, child) {
+                          return TextFormField(
+                            controller: currentController,
+                            obscureText: !visible,
+                            decoration: _passwordInputDecoration(
+                              label: 'Contraseña actual',
+                              icon: Icons.lock_outline,
+                              visible: visible,
+                              onVisibilityPressed: () {
+                                currentVisible.value = !visible;
+                              },
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Ingresa tu contraseña actual';
+                              }
+                              return null;
+                            },
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // NUEVA CONTRASEÑA
+                      ValueListenableBuilder<bool>(
+                        valueListenable: newVisible,
+                        builder: (context, visible, child) {
+                          return TextFormField(
+                            controller: newController,
+                            obscureText: !visible,
+                            onChanged: (value) {
+                              newPasswordNotifier.value = value;
+                            },
+                            decoration: _passwordInputDecoration(
+                              label: 'Nueva contraseña',
+                              icon: Icons.lock_reset_outlined,
+                              visible: visible,
+                              onVisibilityPressed: () {
+                                newVisible.value = !visible;
+                              },
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Ingresa una contraseña nueva';
+                              }
+
+                              final hasMinLength = value.length >= 8;
+                              final hasUppercase = RegExp(r'[A-Z]')
+                                  .hasMatch(value);
+                              final hasLowercase = RegExp(r'[a-z]')
+                                  .hasMatch(value);
+                              final hasNumber = RegExp(r'[0-9]')
+                                  .hasMatch(value);
+
+                              if (!hasMinLength ||
+                                  !hasUppercase ||
+                                  !hasLowercase ||
+                                  !hasNumber) {
+                                return 'No cumple los requisitos';
+                              }
+
+                              return null;
+                            },
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // REQUISITOS EN TIEMPO REAL
+                      ValueListenableBuilder<String>(
+                        valueListenable: newPasswordNotifier,
+                        builder: (context, password, child) {
+                          final hasMinLength = password.length >= 8;
+                          final hasUppercase = RegExp(r'[A-Z]')
+                              .hasMatch(password);
+                          final hasLowercase = RegExp(r'[a-z]')
+                              .hasMatch(password);
+                          final hasNumber = RegExp(r'[0-9]').hasMatch(password);
+
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'La contraseña debe contener:',
+                                  style: TextStyle(
+                                    color: AppColors.text,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                _passwordRequirement(
+                                  'Mínimo 8 caracteres',
+                                  hasMinLength,
+                                ),
+
+                                _passwordRequirement(
+                                  'Una letra mayúscula',
+                                  hasUppercase,
+                                ),
+
+                                _passwordRequirement(
+                                  'Una letra minúscula',
+                                  hasLowercase,
+                                ),
+
+                                _passwordRequirement('Un número', hasNumber),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // CONFIRMAR CONTRASEÑA
+                      ValueListenableBuilder<bool>(
+                        valueListenable: confirmVisible,
+                        builder: (context, visible, child) {
+                          return TextFormField(
+                            controller: confirmController,
+                            obscureText: !visible,
+                            decoration: _passwordInputDecoration(
+                              label: 'Confirmar contraseña',
+                              icon: Icons.verified_user_outlined,
+                              visible: visible,
+                              onVisibilityPressed: () {
+                                confirmVisible.value = !visible;
+                              },
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Confirma tu contraseña';
+                              }
+
+                              if (value != newController.text) {
+                                return 'Las contraseñas no coinciden';
+                              }
+
+                              return null;
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: AppColors.primary),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  if (!formKey.currentState!.validate()) return;
+
+                  Navigator.pop(dialogContext, {
+                    'current': currentController.text,
+                    'new': newController.text,
+                    'confirm': confirmController.text,
+                  });
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted || result == null) return;
+
+      final error = _securityViewModel.changePassword(
+        currentPassword: result['current']!,
+        newPassword: result['new']!,
+        confirmPassword: result['confirm']!,
+      );
+
+      if (!mounted) return;
+
+      _showMessage(error ?? 'Contraseña actualizada correctamente');
+    } finally {
+      // Espera a que termine la animación de cierre del diálogo.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      currentController.dispose();
+      newController.dispose();
+      confirmController.dispose();
+
+      newPasswordNotifier.dispose();
+      currentVisible.dispose();
+      newVisible.dispose();
+      confirmVisible.dispose();
+    }
+  }
+
+  // DECORACIÓN DE LOS CAMPOS DE CONTRASEÑA
+  InputDecoration _passwordInputDecoration({
+    required String label,
+    required IconData icon,
+    required bool visible,
+    required VoidCallback onVisibilityPressed,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20),
+      suffixIcon: IconButton(
+        onPressed: onVisibilityPressed,
+        icon: Icon(
+          visible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          color: AppColors.textSecondary,
+          size: 20,
+        ),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD1D8E2)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+    );
+  }
+
+  // INDICADOR DE REQUISITOS
+  Widget _passwordRequirement(String text, bool isValid) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            isValid
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            color: isValid ? AppColors.secondary : AppColors.textSecondary,
+            size: 16,
+          ),
+
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: isValid ? AppColors.secondary : AppColors.textSecondary,
+                fontWeight: isValid ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // INFORMACIÓN PERSONAL - SOLO LECTURA
+  // ============================================================
+
+  void _showPersonalInformation(UserModel user) {
+    showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              8,
-              16,
-              16,
-            ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Foto de perfil',
+                  'Información personal',
                   style: TextStyle(
-                    fontSize: 18,
+                    color: AppColors.text,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library_outlined,
-                    color: AppColors.primary,
+                const Text(
+                  'Estos datos son únicamente de consulta.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
                   ),
-                  title: const Text(
-                    'Seleccionar de la galería',
-                  ),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _changeProfilePhoto();
-                  },
                 ),
 
-                if (_profileImage != null)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: AppColors.error,
+                const SizedBox(height: 22),
+
+                _informationRow('Nombres', user.firstName),
+                _informationRow('Apellidos', user.lastName),
+                _informationRow('Cédula', user.identification),
+                _informationRow('Correo electrónico', user.email),
+                _informationRow('Teléfono', user.phone),
+
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
                     ),
-                    title: const Text(
-                      'Eliminar foto',
-                      style: TextStyle(
-                        color: AppColors.error,
-                      ),
-                    ),
-                    onTap: () {
+                    onPressed: () {
                       Navigator.pop(sheetContext);
-                      setState(() {
-                        _profileImage = null;
-                      });
                     },
+                    child: const Text('Cerrar'),
                   ),
+                ),
               ],
             ),
           ),
@@ -145,7 +494,55 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // Construir una opción de configuración
+  Widget _informationRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const Divider(height: 16),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // CERRAR SESIÓN
+  // ============================================================
+
+  void _logout() {
+    MockAuthService.logout();
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
+  }
+
+  // ============================================================
+  // WIDGETS REUTILIZABLES
+  // ============================================================
+
   Widget _buildOption({
     required IconData icon,
     required String title,
@@ -157,10 +554,7 @@ class _ProfileViewState extends State<ProfileView> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             Container(
@@ -170,11 +564,7 @@ class _ProfileViewState extends State<ProfileView> {
                 color: iconBackground,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 20,
-              ),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
 
             const SizedBox(width: 12),
@@ -202,7 +592,6 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // Construir una sección con tarjeta blanca
   Widget _buildSection({
     required String title,
     required List<Widget> children,
@@ -211,10 +600,7 @@ class _ProfileViewState extends State<ProfileView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            left: 5,
-            bottom: 9,
-          ),
+          padding: const EdgeInsets.only(left: 5, bottom: 9),
           child: Text(
             title,
             style: const TextStyle(
@@ -260,199 +646,7 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // Editar información personal
-  Future<void> _editProfile(UserModel user) async {
-    final firstNameController = TextEditingController(
-      text: user.firstName,
-    );
-
-    final lastNameController = TextEditingController(
-      text: user.lastName,
-    );
-
-    final emailController = TextEditingController(
-      text: user.email,
-    );
-
-    final phoneController = TextEditingController(
-      text: user.phone,
-    );
-
-    final formKey = GlobalKey<FormState>();
-
-    try {
-      final result = await showDialog<Map<String, String>>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text(
-              'Información personal',
-            ),
-
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Nombre
-                    TextFormField(
-                      controller: firstNameController,
-                      textCapitalization:
-                      TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre',
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Ingresa tu nombre';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Apellido
-                    TextFormField(
-                      controller: lastNameController,
-                      textCapitalization:
-                      TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Apellido',
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Ingresa tu apellido';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Correo
-                    TextFormField(
-                      controller: emailController,
-                      keyboardType:
-                      TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo electrónico',
-                      ),
-                      validator: (value) {
-                        final email = value?.trim() ?? '';
-
-                        if (!RegExp(
-                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                        ).hasMatch(email)) {
-                          return 'Ingresa un correo válido';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Teléfono
-                    TextFormField(
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Teléfono',
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'Ingresa tu teléfono';
-                        }
-
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Cancelar'),
-              ),
-
-              FilledButton(
-                onPressed: () {
-                  if (!formKey.currentState!.validate()) {
-                    return;
-                  }
-
-                  Navigator.pop(dialogContext, {
-                    'firstName':
-                    firstNameController.text.trim(),
-                    'lastName':
-                    lastNameController.text.trim(),
-                    'email':
-                    emailController.text.trim(),
-                    'phone':
-                    phoneController.text.trim(),
-                  });
-                },
-                child: const Text('Guardar'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (!mounted || result == null) {
-        return;
-      }
-
-      final success = await _viewModel.updateProfile(
-        firstName: result['firstName']!,
-        lastName: result['lastName']!,
-        email: result['email']!,
-        phone: result['phone']!,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Información actualizada correctamente'
-                : (_viewModel.errorMessage ??
-                'No se pudo actualizar el perfil'),
-          ),
-        ),
-      );
-    } finally {
-      // Mantener la espera utilizada en la
-      // corrección anterior del formulario.
-      await Future<void>.delayed(
-        const Duration(milliseconds: 300),
-      );
-
-      firstNameController.dispose();
-      lastNameController.dispose();
-      emailController.dispose();
-      phoneController.dispose();
-    }
-  }
-
-  // Botones superiores: regresar y editar
-  Widget _headerButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+  Widget _headerButton({required IconData icon, required VoidCallback onTap}) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(15),
@@ -462,22 +656,21 @@ class _ProfileViewState extends State<ProfileView> {
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-            size: 22,
-          ),
+          child: Icon(icon, color: AppColors.primary, size: 22),
         ),
       ),
     );
   }
+
+  // ============================================================
+  // INTERFAZ PRINCIPAL DEL PERFIL
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
 
-      // Barra inferior
       bottomNavigationBar: DashboardBottomNav(
         selectedIndex: 3,
         onItemSelected: (index) {
@@ -487,14 +680,15 @@ class _ProfileViewState extends State<ProfileView> {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
-              _showComingSoon('Navegación a Inicio');
+              Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
             }
-
             return;
           }
 
-          _showComingSoon(
-            index == 1 ? 'Movimientos' : 'Pagos',
+          _showMessage(
+            index == 1
+                ? 'Movimientos estará disponible próximamente'
+                : 'Pagos estará disponible próximamente',
           );
         },
       ),
@@ -504,9 +698,7 @@ class _ProfileViewState extends State<ProfileView> {
           listenable: _viewModel,
           builder: (context, child) {
             if (_viewModel.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             final user = _viewModel.user;
@@ -514,31 +706,27 @@ class _ProfileViewState extends State<ProfileView> {
             if (user == null) {
               return Center(
                 child: Text(
-                  _viewModel.errorMessage ??
-                      'No se encontró el usuario',
+                  _viewModel.errorMessage ?? 'No se encontró el usuario',
                 ),
               );
             }
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(
-                30,
-                18,
-                30,
-                30,
-              ),
+              padding: const EdgeInsets.fromLTRB(30, 18, 30, 30),
               children: [
                 // ENCABEZADO
                 Row(
                   children: [
                     _headerButton(
-                      icon:
-                      Icons.arrow_back_ios_new_rounded,
+                      icon: Icons.arrow_back_ios_new_rounded,
                       onTap: () {
                         if (Navigator.canPop(context)) {
                           Navigator.pop(context);
                         } else {
-                          _showComingSoon('Regresar');
+                          Navigator.pushReplacementNamed(
+                            context,
+                            AppRoutes.dashboard,
+                          );
                         }
                       },
                     ),
@@ -555,10 +743,7 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                     ),
 
-                    _headerButton(
-                      icon: Icons.edit_outlined,
-                      onTap: () => _editProfile(user),
-                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
 
@@ -575,58 +760,47 @@ class _ProfileViewState extends State<ProfileView> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: const Color(0xFFDCE6F5),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 4,
-                          ),
+                          border: Border.all(color: Colors.white, width: 4),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: 0.08,
-                              ),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 16,
                               offset: const Offset(0, 6),
                             ),
                           ],
                         ),
+                        alignment: Alignment.center,
                         child: ClipOval(
                           child: _profileImage != null
                               ? Image.file(
-                            _profileImage!,
-                            width: 108,
-                            height: 108,
-                            fit: BoxFit.cover,
-                          )
-                              : Center(
-                            child: Text(
-                              _getInitials(user),
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 36,
-                                fontWeight:
-                                FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                                  _profileImage!,
+                                  width: 108,
+                                  height: 108,
+                                  fit: BoxFit.cover,
+                                )
+                              : Text(
+                                  _getInitials(user),
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
 
-                      // Botón de cámara
                       Positioned(
                         right: -2,
                         bottom: 0,
                         child: GestureDetector(
-                          onTap: _showPhotoOptions,
+                          onTap: _changeProfilePhoto,
                           child: Container(
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 3,
-                              ),
+                              border: Border.all(color: Colors.white, width: 3),
                             ),
                             child: const Icon(
                               Icons.camera_alt_outlined,
@@ -642,7 +816,6 @@ class _ProfileViewState extends State<ProfileView> {
 
                 const SizedBox(height: 15),
 
-                // NOMBRE
                 Text(
                   user.fullName,
                   textAlign: TextAlign.center,
@@ -655,7 +828,6 @@ class _ProfileViewState extends State<ProfileView> {
 
                 const SizedBox(height: 4),
 
-                // CORREO
                 Text(
                   user.email,
                   textAlign: TextAlign.center,
@@ -667,7 +839,7 @@ class _ProfileViewState extends State<ProfileView> {
 
                 const SizedBox(height: 11),
 
-                // IDENTIDAD VERIFICADA
+                // INDICADOR VISUAL DE IDENTIDAD
                 Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -686,9 +858,7 @@ class _ProfileViewState extends State<ProfileView> {
                           color: Color(0xFF13745A),
                           size: 15,
                         ),
-
                         SizedBox(width: 7),
-
                         Text(
                           'Identidad verificada',
                           style: TextStyle(
@@ -712,22 +882,46 @@ class _ProfileViewState extends State<ProfileView> {
                       icon: Icons.lock_outline_rounded,
                       title: 'Cambiar contraseña',
                       iconColor: AppColors.primary,
-                      iconBackground:
-                      const Color(0xFFE7EFFC),
-                      onTap: () => _showComingSoon(
-                        'Cambiar contraseña',
-                      ),
+                      iconBackground: const Color(0xFFE7EFFC),
+                      onTap: _showChangePasswordDialog,
                     ),
 
-                    _buildOption(
-                      icon: Icons.fingerprint_rounded,
-                      title: 'Ingreso con huella',
-                      iconColor: AppColors.primary,
-                      iconBackground:
-                      const Color(0xFFE7EFFC),
-                      onTap: () => _showComingSoon(
-                        'Ingreso con huella',
-                      ),
+                    ListenableBuilder(
+                      listenable: _securityViewModel,
+                      builder: (context, child) {
+                        return _buildOption(
+                          icon: Icons.fingerprint_rounded,
+                          title: 'Ingreso con huella',
+                          iconColor: AppColors.primary,
+                          iconBackground: const Color(0xFFE7EFFC),
+                          onTap: () {
+                            final enabled =
+                                !_securityViewModel.fingerprintEnabled;
+
+                            _securityViewModel.setFingerprintEnabled(enabled);
+
+                            _showMessage(
+                              enabled
+                                  ? 'Ingreso con huella simulado activado'
+                                  : 'Ingreso con huella desactivado',
+                            );
+                          },
+                          trailing: Switch(
+                            value: _securityViewModel.fingerprintEnabled,
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: AppColors.secondary,
+                            onChanged: (enabled) {
+                              _securityViewModel.setFingerprintEnabled(enabled);
+
+                              _showMessage(
+                                enabled
+                                    ? 'Ingreso con huella simulado activado'
+                                    : 'Ingreso con huella desactivado',
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -742,20 +936,25 @@ class _ProfileViewState extends State<ProfileView> {
                       icon: Icons.person_outline_rounded,
                       title: 'Información personal',
                       iconColor: AppColors.secondary,
-                      iconBackground:
-                      const Color(0xFFE2F3EC),
-                      onTap: () => _editProfile(user),
+                      iconBackground: const Color(0xFFE2F3EC),
+                      onTap: () {
+                        _showPersonalInformation(user);
+                      },
                     ),
 
                     _buildOption(
-                      icon: Icons.credit_card_outlined,
-                      title: 'Mis cuentas',
+                      icon: Icons.account_balance_outlined,
+                      title: 'Mis pólizas',
                       iconColor: AppColors.secondary,
-                      iconBackground:
-                      const Color(0xFFE2F3EC),
-                      onTap: () => _showComingSoon(
-                        'Mis cuentas',
-                      ),
+                      iconBackground: const Color(0xFFE2F3EC),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PoliciesView(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -768,25 +967,18 @@ class _ProfileViewState extends State<ProfileView> {
                   borderRadius: BorderRadius.circular(16),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: () => _showComingSoon(
-                      'Cerrar sesión',
-                    ),
+                    onTap: _logout,
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 18,
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 18),
                       child: Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.logout_rounded,
                             color: AppColors.error,
                             size: 21,
                           ),
-
                           SizedBox(width: 12),
-
                           Text(
                             'Cerrar sesión',
                             style: TextStyle(

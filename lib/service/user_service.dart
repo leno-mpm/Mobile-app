@@ -1,26 +1,28 @@
-import 'package:mobile_app/mock/mock_users.dart';
-import 'package:mobile_app/model/user_model.dart';
+import '../model/user_model.dart';
+import 'mock_auth_service.dart';
 
 class UserService {
-
-  //Usuario almacenado temporamente en memoria
-  UserModel _currentUser = MockUsers.currentUser;
-
-  //Obtener los datos de un usuario
   Future<UserModel?> getUserById(String userId) async {
-    if(_currentUser.id == userId){
-      return _currentUser;
+    for (final user in MockAuthService.registeredUsers) {
+      if (user.id == userId) {
+        return user;
+      }
     }
+
     return null;
   }
 
-  //Actualizar los datos del usuario
-  Future<UserModel> updateUser (UserModel updateUser) async{
-    if(_currentUser.id != updateUser.id){
-      throw ArgumentError('El usuario no existe');
+  Future<UserModel> updateUser(UserModel updatedUser) async {
+    final index = MockAuthService.registeredUsers.indexWhere(
+          (user) => user.id == updatedUser.id,
+    );
+
+    if (index == -1) {
+      throw ArgumentError('Usuario no encontrado');
     }
 
-    _currentUser = updateUser;
-    return _currentUser;
+    MockAuthService.registeredUsers[index] = updatedUser;
+
+    return updatedUser;
   }
 }
