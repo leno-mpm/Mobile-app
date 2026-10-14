@@ -95,19 +95,6 @@ class DashboardHeader extends StatelessWidget {
                   ],
                 ),
               ),
-
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF345987),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Colors.white,
-                ),
-              ),
             ],
           ),
 
