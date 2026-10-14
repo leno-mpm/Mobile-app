@@ -17,4 +17,21 @@ class UserModel {
   });
 
   String get fullName => '$firstName $lastName';
+
+  UserModel copyWith({
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? identification,
+  }) {
+    return UserModel(
+      id: id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      identification: identification ?? this.identification,
+    );
+  }
 }
