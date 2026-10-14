@@ -28,6 +28,12 @@ class _AccountCardState extends State<AccountCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
+  bool get _isSavings =>
+      widget.account.accountType.toLowerCase() == 'ahorros';
+
+  Color get _cardTextColor =>
+      _isSavings ? AppColors.primary : Colors.white;
+
   @override
   void initState() {
     super.initState();
@@ -67,7 +73,7 @@ class _AccountCardState extends State<AccountCard>
     return '\$$formatted.${parts[1]}';
   }
 
-  // Oculta todos los dígitos excepto los últimos cuatro.
+  // Ocultar todos los dígitos excepto los últimos cuatro.
   String _maskAccountNumber(String accountNumber) {
     if (accountNumber.length <= 4) {
       return accountNumber;
@@ -79,15 +85,13 @@ class _AccountCardState extends State<AccountCard>
     return '${'*' * hiddenCount}$lastFour';
   }
 
-  // Usa el mismo estado del ojito del Dashboard.
+  // El ojito del Dashboard controla los números de cuenta.
   String _getDisplayedAccountNumber() {
     final accountNumber = widget.account.accountNumber;
 
-    if (widget.showBalance) {
-      return accountNumber;
-    }
-
-    return _maskAccountNumber(accountNumber);
+    return widget.showBalance
+        ? accountNumber
+        : _maskAccountNumber(accountNumber);
   }
 
   @override
@@ -103,7 +107,7 @@ class _AccountCardState extends State<AccountCard>
           return Transform(
             alignment: Alignment.center,
             transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.001)
+              ..setEntry(3, 2, 0.0005)
               ..rotateY(angle),
             child: isBack
                 ? Transform(
@@ -118,255 +122,281 @@ class _AccountCardState extends State<AccountCard>
     );
   }
 
+  // ============================
   // PARTE FRONTAL
+  // ============================
+
   Widget _buildFront() {
+    final textColor = _cardTextColor;
+
     return Container(
+      // La sombra permanece fuera del área recortada.
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: widget.account.accountType.toLowerCase() == 'ahorros'
-              ? [
-            AppColors.primary,
-            const Color(0xFF305E98),
-          ]
-              : [
-            AppColors.secondary,
-            const Color(0xFF145440),
-          ],
-        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: widget.isSelected
-              ? const Color(0xFF8FB8FF)
-              : Colors.transparent,
-          width: 2,
-        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
-      child: Stack(
-        children: [
-          // Decoración de fondo
-          Positioned(
-            right: -35,
-            top: -45,
-            child: Container(
-              width: 155,
-              height: 155,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  width: 20,
+
+      // Recorta el círculo decorativo a los límites
+      // redondeados de la tarjeta.
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          color: _isSavings
+              ? Colors.white
+              : AppColors.secondary,
+          padding: const EdgeInsets.all(20),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Círculo decorativo
+              Positioned(
+                right: -35,
+                top: -45,
+                child: Container(
+                  width: 155,
+                  height: 155,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _isSavings
+                          ? AppColors.primary.withValues(alpha: 0.04)
+                          : Colors.white.withValues(alpha: 0.08),
+                      width: 20,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  // Logo Mint y símbolo contactless
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Mint',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            'Mint',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(width: 7),
+
+                          Icon(
+                            Icons.spa_rounded,
+                            color: _isSavings
+                                ? AppColors.secondary
+                                : const Color(0xFF8EF0C4),
+                            size: 23,
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 7),
+
                       Icon(
-                        Icons.spa_rounded,
-                        color: Color(0xFF64D9A5),
-                        size: 23,
+                        Icons.wifi_rounded,
+                        color: textColor,
+                        size: 26,
                       ),
                     ],
                   ),
 
-                  const Icon(
-                    Icons.wifi_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ],
-              ),
+                  const Spacer(),
 
-              const Spacer(),
-
-              // Chip decorativo
-              Container(
-                width: 43,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD5DDE8),
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(
-                    color: const Color(0xFF9BAAC0),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.grid_view_rounded,
-                  color: Color(0xFF637894),
-                  size: 23,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Número de cuenta: completo u oculto.
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _getDisplayedAccountNumber(),
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'CUENTA ${widget.account.accountType.toUpperCase()}',
-                    style: const TextStyle(
-                      color: Color(0xFFE0E9F5),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                  // Chip de la tarjeta
+                  Container(
+                    width: 43,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _isSavings
+                          ? const Color(0xFFE1E8F0)
+                          : const Color(0xFFD4F3E8),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(
+                      Icons.grid_view_rounded,
+                      color: _isSavings
+                          ? const Color(0xFF7189A7)
+                          : AppColors.secondary,
+                      size: 23,
                     ),
                   ),
 
-                  Text(
-                    widget.account.currency,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 20),
+
+                  // Número de cuenta
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _getDisplayedAccountNumber(),
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 22,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Tipo de cuenta y moneda
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'CUENTA ${widget.account.accountType.toUpperCase()}',
+                        style: TextStyle(
+                          color: _isSavings
+                              ? AppColors.textSecondary
+                              : const Color(0xFFE0F6EE),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      Text(
+                        widget.account.currency,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
+  // ============================
   // PARTE POSTERIOR
+  // ============================
+
   Widget _buildBack() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE6EDF7),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: widget.isSelected
-              ? AppColors.primary
-              : const Color(0xFFC8D5E6),
-          width: widget.isSelected ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-
-          // Banda magnética decorativa
-          Container(
-            width: double.infinity,
-            height: 30,
-            color: const Color(0xFF25354C),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          color: const Color(0xFFE6EDF7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
 
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'SALDO DISPONIBLE',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+              // Banda magnética decorativa
+              Container(
+                width: double.infinity,
+                height: 30,
+                color: const Color(0xFF25354C),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    10,
+                    20,
+                    10,
                   ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    widget.showBalance
-                        ? _formatMoney(widget.account.balance)
-                        : '••••••••',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _info(
-                          'TIPO DE CUENTA',
-                          widget.account.accountType,
-                        ),
-                      ),
-
-                      _info(
-                        'MONEDA',
-                        widget.account.currency,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Mint · Banca móvil',
+                      const Text(
+                        'SALDO DISPONIBLE',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(
-                        Icons.flip_rounded,
-                        color: AppColors.primary,
-                        size: 20,
+
+                      const SizedBox(height: 5),
+
+                      Text(
+                        widget.showBalance
+                            ? _formatMoney(widget.account.balance)
+                            : '••••••••',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _info(
+                              'TIPO DE CUENTA',
+                              widget.account.accountType,
+                            ),
+                          ),
+
+                          _info(
+                            'MONEDA',
+                            widget.account.currency,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      const Row(
+                        mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Mint · Banca móvil',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
+                          ),
+
+                          Icon(
+                            Icons.flip_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

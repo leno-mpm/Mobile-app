@@ -208,6 +208,7 @@ class _DashboardViewState extends State<DashboardView> {
                     SizedBox(
                       height: 215,
                       child: ListView.separated(
+                        clipBehavior: Clip.none,
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -220,8 +221,7 @@ class _DashboardViewState extends State<DashboardView> {
                         itemBuilder: (context, index) {
                           final account = _viewModel.accounts[index];
 
-                          final isSelected =
-                              selectedAccount?.id == account.id;
+                          final isSelected = selectedAccount?.id == account.id;
 
                           return SizedBox(
                             width: 315,
