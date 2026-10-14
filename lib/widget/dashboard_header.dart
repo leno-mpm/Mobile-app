@@ -1,94 +1,50 @@
 
 import 'package:flutter/material.dart';
 
-import '../model/account_model.dart';
-import '../model/user_model.dart';
 import '../core/theme/app_colors.dart';
+import '../model/user_model.dart';
 
-class DashboardHeader extends StatefulWidget {
+class DashboardHeader extends StatelessWidget {
   final UserModel user;
-  final AccountModel account;
   final double totalBalance;
   final int accountCount;
+  final bool showBalance;
+  final VoidCallback onToggleBalance;
 
   const DashboardHeader({
     super.key,
     required this.user,
-    required this.account,
     required this.totalBalance,
     required this.accountCount,
+    required this.showBalance,
+    required this.onToggleBalance,
   });
-
-  @override
-  State<DashboardHeader> createState() => _DashboardHeaderState();
-}
-
-class _DashboardHeaderState extends State<DashboardHeader> {
-  bool _showBalance = true;
 
   String _formatMoney(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
-    final integerPart = parts[0];
 
-    final formattedInteger = integerPart.replaceAllMapped(
+    final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
           (match) => ',',
     );
 
-    return '\$$formattedInteger.${parts[1]}';
+    return '\$$formatted.${parts[1]}';
   }
 
-  String get _initials {
-    final first = widget.user.firstName.trim();
-    final last = widget.user.lastName.trim();
+  String _getInitials() {
+    final first = user.firstName.trim();
+    final last = user.lastName.trim();
 
     return '${first.isNotEmpty ? first[0] : ''}'
         '${last.isNotEmpty ? last[0] : ''}'
         .toUpperCase();
   }
 
-  Widget _quickAction({
-    required IconData icon,
-    required String label,
-  }) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            width: 49,
-            height: 49,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final accountNumber = widget.account.accountNumber;
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
       decoration: const BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.only(
@@ -99,14 +55,14 @@ class _DashboardHeaderState extends State<DashboardHeader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar, saludo y notificaciones
+          // Saludo y avatar
           Row(
             children: [
               CircleAvatar(
-                radius: 24,
-                backgroundColor: const Color(0xFF42638D),
+                radius: 22,
+                backgroundColor: const Color(0xFF41638F),
                 child: Text(
-                  _initials,
+                  _getInitials(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -114,7 +70,7 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                 ),
               ),
 
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
 
               Expanded(
                 child: Column(
@@ -123,15 +79,16 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                     const Text(
                       'Buenos días,',
                       style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
+                        color: Color(0xFFD5E2F2),
+                        fontSize: 12,
                       ),
                     ),
+                    const SizedBox(height: 3),
                     Text(
-                      widget.user.firstName,
+                      user.firstName,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -140,11 +97,11 @@ class _DashboardHeaderState extends State<DashboardHeader> {
               ),
 
               Container(
-                width: 46,
-                height: 46,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF365985),
-                  borderRadius: BorderRadius.circular(15),
+                  color: const Color(0xFF345987),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.notifications_none_rounded,
@@ -154,17 +111,18 @@ class _DashboardHeaderState extends State<DashboardHeader> {
             ],
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
-          // Tarjeta del saldo y accesos rápidos
+          // Resumen general del dinero
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF365985),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFF365C89),
+              borderRadius: BorderRadius.circular(19),
               border: Border.all(
-                color: const Color(0xFF6B87A8),
+                color: const Color(0xFF7290B5),
+                width: 0.7,
               ),
             ),
             child: Column(
@@ -172,31 +130,28 @@ class _DashboardHeaderState extends State<DashboardHeader> {
               children: [
                 Row(
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Text(
-                        'Saldo disponible · '
-                            '${widget.account.accountType} '
-                            '$accountNumber',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                        'Saldo total disponible',
+                        style: TextStyle(
+                          color: Color(0xFFDCE8F7),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
 
                     IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _showBalance = !_showBalance;
-                        });
-                      },
+                      tooltip: showBalance
+                          ? 'Ocultar saldos'
+                          : 'Mostrar saldos',
+                      onPressed: onToggleBalance,
                       icon: Icon(
-                        _showBalance
+                        showBalance
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         color: Colors.white,
+                        size: 22,
                       ),
                     ),
                   ],
@@ -205,50 +160,25 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                 const SizedBox(height: 4),
 
                 Text(
-                  _showBalance
-                      ? _formatMoney(widget.account.balance)
-                      : '••••••',
+                  showBalance
+                      ? _formatMoney(totalBalance)
+                      : '••••••••',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 34,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
 
                 Text(
-                  _showBalance
-                      ? 'Total en tus ${widget.accountCount} cuentas: '
-                      '${_formatMoney(widget.totalBalance)}'
-                      : 'Total en tus ${widget.accountCount} cuentas: ••••••',
+                  'Distribuido en $accountCount '
+                      '${accountCount == 1 ? 'cuenta' : 'cuentas'}',
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
+                    color: Color(0xFFDCE8F7),
+                    fontSize: 12,
                   ),
-                ),
-
-                const SizedBox(height: 24),
-
-                Row(
-                  children: [
-                    _quickAction(
-                      icon: Icons.swap_horiz_rounded,
-                      label: 'Transferir',
-                    ),
-                    _quickAction(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Pagar',
-                    ),
-                    _quickAction(
-                      icon: Icons.phone_android_rounded,
-                      label: 'Recargar',
-                    ),
-                    _quickAction(
-                      icon: Icons.more_horiz_rounded,
-                      label: 'Más',
-                    ),
-                  ],
                 ),
               ],
             ),

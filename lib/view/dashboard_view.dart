@@ -1,14 +1,18 @@
+
 import 'package:flutter/material.dart';
 
-import '../widget/dashboard_bottom_nav.dart';
+import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
 import '../model/account_model.dart';
 import '../service/account_service.dart';
 import '../viewModel/dashboard_view_model.dart';
 import '../widget/account_card.dart';
+import '../widget/dashboard_bottom_nav.dart';
 import '../widget/dashboard_header.dart';
 import '../widget/transaction_tile.dart';
+
+import 'transaction_detail_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -20,8 +24,8 @@ class DashboardView extends StatefulWidget {
 class _DashboardViewState extends State<DashboardView> {
   late final DashboardViewModel _viewModel;
 
-  // Identificador de la cuenta seleccionada
   String? _selectedAccountId;
+  bool _showBalance = true;
 
   @override
   void initState() {
@@ -29,7 +33,9 @@ class _DashboardViewState extends State<DashboardView> {
 
     _viewModel = DashboardViewModel(AccountService());
 
-    _viewModel.loadDashboard(MockUsers.currentUser.id);
+    _viewModel.loadDashboard(
+      MockUsers.currentUser.id,
+    );
   }
 
   @override
@@ -38,7 +44,6 @@ class _DashboardViewState extends State<DashboardView> {
     super.dispose();
   }
 
-  // Obtener la cuenta seleccionada
   AccountModel? _getSelectedAccount() {
     if (_viewModel.accounts.isEmpty) {
       return null;
@@ -50,15 +55,39 @@ class _DashboardViewState extends State<DashboardView> {
       }
     }
 
-    // Si no hay selección, usar la primera cuenta
     return _viewModel.accounts.first;
   }
 
-  // Cambiar la cuenta seleccionada
   void _selectAccount(String accountId) {
     setState(() {
       _selectedAccountId = accountId;
     });
+  }
+
+  void _toggleBalanceVisibility() {
+    setState(() {
+      _showBalance = !_showBalance;
+    });
+  }
+
+  AccountModel? _getAccountById(String accountId) {
+    for (final account in _viewModel.accounts) {
+      if (account.id == accountId) {
+        return account;
+      }
+    }
+
+    return null;
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$feature estará disponible próximamente',
+        ),
+      ),
+    );
   }
 
   @override
@@ -74,10 +103,16 @@ class _DashboardViewState extends State<DashboardView> {
             return;
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Esta sección estará disponible próximamente'),
-            ),
+          if (index == 3) {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.profile,
+            );
+            return;
+          }
+
+          _showComingSoon(
+            index == 1 ? 'Movimientos' : 'Pagos',
           );
         },
       ),
@@ -87,7 +122,9 @@ class _DashboardViewState extends State<DashboardView> {
           listenable: _viewModel,
           builder: (context, child) {
             if (_viewModel.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
 
             if (_viewModel.errorMessage != null) {
@@ -105,92 +142,113 @@ class _DashboardViewState extends State<DashboardView> {
             final selectedAccount = _getSelectedAccount();
 
             return RefreshIndicator(
-              onRefresh: () =>
-                  _viewModel.loadDashboard(MockUsers.currentUser.id),
+              onRefresh: () {
+                return _viewModel.loadDashboard(
+                  MockUsers.currentUser.id,
+                );
+              },
 
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  // Encabezado azul
-                  if (selectedAccount != null)
-                    DashboardHeader(
-                      user: MockUsers.currentUser,
-                      account: selectedAccount,
-                      totalBalance: _viewModel.totalBalance,
-                      accountCount: _viewModel.accounts.length,
+                  // Encabezado: saludo y saldo total
+                  DashboardHeader(
+                    user: MockUsers.currentUser,
+                    totalBalance: _viewModel.totalBalance,
+                    accountCount: _viewModel.accounts.length,
+                    showBalance: _showBalance,
+                    onToggleBalance: _toggleBalanceVisibility,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Mis cuentas
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mis cuentas',
+                          style: TextStyle(
+                            color: AppColors.text,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        const Text(
+                          'Toca una tarjeta para ver sus detalles',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Tarjetas bancarias giratorias
+                  if (_viewModel.accounts.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      child: Text(
+                        'No tienes cuentas registradas',
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 215,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        itemCount: _viewModel.accounts.length,
+                        separatorBuilder: (context, index) {
+                          return const SizedBox(width: 14);
+                        },
+                        itemBuilder: (context, index) {
+                          final account = _viewModel.accounts[index];
+
+                          final isSelected =
+                              selectedAccount?.id == account.id;
+
+                          return SizedBox(
+                            width: 315,
+                            child: AccountCard(
+                              key: ValueKey(account.id),
+                              account: account,
+                              isSelected: isSelected,
+                              showBalance: _showBalance,
+                              onTap: () {
+                                _selectAccount(account.id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
 
                   const SizedBox(height: 24),
 
+                  // Últimos movimientos
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Sección de cuentas
-                        Row(
-                          children: [
-                            const Text(
-                              'Mis cuentas',
-                              style: TextStyle(
-                                color: AppColors.text,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            const Spacer(),
-
-                            const Flexible(
-                              child: Text(
-                                'Toca una para operar con ella',
-                                textAlign: TextAlign.end,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Cuentas en horizontal
-                        if (_viewModel.accounts.isEmpty)
-                          const Text('No tienes cuentas registradas')
-                        else
-                          SizedBox(
-                            height: 108,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _viewModel.accounts.length,
-                              separatorBuilder: (context, index) {
-                                return const SizedBox(width: 12);
-                              },
-                              itemBuilder: (context, index) {
-                                final account = _viewModel.accounts[index];
-
-                                final isSelected =
-                                    selectedAccount?.id == account.id;
-
-                                return SizedBox(
-                                  width: 170,
-                                  child: AccountCard(
-                                    account: account,
-                                    isSelected: isSelected,
-                                    onTap: () {
-                                      _selectAccount(account.id);
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                        const SizedBox(height: 28),
-
-                        // Encabezado de movimientos
                         Row(
                           children: [
                             const Expanded(
@@ -206,13 +264,8 @@ class _DashboardViewState extends State<DashboardView> {
 
                             TextButton(
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'La pantalla de movimientos '
-                                      'se implementará próximamente',
-                                    ),
-                                  ),
+                                _showComingSoon(
+                                  'Pantalla de movimientos',
                                 );
                               },
                               child: const Text('Ver todo'),
@@ -222,13 +275,46 @@ class _DashboardViewState extends State<DashboardView> {
 
                         const SizedBox(height: 12),
 
-                        // Movimientos bancarios
                         if (_viewModel.transactions.isEmpty)
-                          const Text('No tienes movimientos recientes')
+                          const Text(
+                            'No tienes movimientos recientes',
+                          )
                         else
                           ..._viewModel.transactions.map(
-                            (transaction) =>
-                                TransactionTile(transaction: transaction),
+                                (transaction) {
+                              final transactionAccount =
+                              _getAccountById(
+                                transaction.accountId,
+                              );
+
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: 8,
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius:
+                                    BorderRadius.circular(16),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TransactionDetailView(
+                                                transaction: transaction,
+                                                account: transactionAccount,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: TransactionTile(
+                                      transaction: transaction,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
 
                         const SizedBox(height: 24),

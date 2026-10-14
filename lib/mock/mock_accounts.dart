@@ -6,18 +6,18 @@ class MockAccounts {
     AccountModel(
       id: 'acc-001',
       userId: 'user-001',
-      accountNumber: '**** 4582',
+      accountNumber: '1234564582',
       accountType: 'Ahorros',
-      balance: 3310.95,
       currency: 'USD',
+      balance: 3310.95,
     ),
     AccountModel(
       id: 'acc-002',
       userId: 'user-001',
-      accountNumber: '**** 8921',
+      accountNumber: '9876548921',
       accountType: 'Corriente',
-      balance: 1250.75,
       currency: 'USD',
+      balance: 1250.75,
     ),
   ];
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/core/theme/app_colors.dart';
+
 import '../viewModel/register_view_model.dart';
 
 class RegisterView extends StatefulWidget {
@@ -11,14 +13,6 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   final RegisterViewModel _viewModel = RegisterViewModel();
 
-  static const Color primaryColor = Color(0xFF173B6C);
-  static const Color secondaryColor = Color(0xFF1E7F64);
-  static const Color accentColor = Color(0xFF4C8DF6);
-  static const Color backgroundColor = Color(0xFFF4F6FA);
-  static const Color textColor = Color(0xFF0F1B2D);
-  static const Color textSecondaryColor = Color(0xFF5A6577);
-  static const Color errorColor = Color(0xFFC0392B);
-
   @override
   void dispose() {
     _viewModel.dispose();
@@ -29,7 +23,7 @@ class _RegisterViewState extends State<RegisterView> {
     _viewModel.registerNewUser();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: secondaryColor,
+        backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         content: const Text(
@@ -48,18 +42,18 @@ class _RegisterViewState extends State<RegisterView> {
       animation: _viewModel,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: backgroundColor,
+            backgroundColor: AppColors.background,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: textColor),
+              icon: const Icon(Icons.arrow_back, color: AppColors.text),
               onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
               'Crea tu cuenta',
               style: TextStyle(
-                color: textColor,
+                color: AppColors.text,
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
               ),
@@ -73,7 +67,10 @@ class _RegisterViewState extends State<RegisterView> {
                 children: [
                   const Text(
                     'Llena tus datos para registrarte en Mint.',
-                    style: TextStyle(fontSize: 15, color: textSecondaryColor),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -129,17 +126,18 @@ class _RegisterViewState extends State<RegisterView> {
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
+                        backgroundColor: AppColors.primary,
                         disabledBackgroundColor: Colors.grey.shade300,
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: textSecondaryColor,
+                        disabledForegroundColor: AppColors.textSecondary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
-                      onPressed:
-                          _viewModel.isFormValid ? _onContinuePressed : null,
+                      onPressed: _viewModel.isFormValid
+                          ? _onContinuePressed
+                          : null,
                       child: const Text(
                         'Continuar',
                         style: TextStyle(
@@ -157,7 +155,7 @@ class _RegisterViewState extends State<RegisterView> {
                       const Text(
                         '¿Deseas volver? ',
                         style: TextStyle(
-                          color: textSecondaryColor,
+                          color: AppColors.textSecondary,
                           fontSize: 15,
                         ),
                       ),
@@ -166,7 +164,7 @@ class _RegisterViewState extends State<RegisterView> {
                         child: const Text(
                           'Inicia sesión',
                           style: TextStyle(
-                            color: accentColor,
+                            color: AppColors.accent,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -197,8 +195,8 @@ class _RegisterViewState extends State<RegisterView> {
     final bool hasError = touched && errorText != null;
 
     Color borderColor = Colors.grey.shade400;
-    if (isValid) borderColor = secondaryColor;
-    if (hasError) borderColor = errorColor;
+    if (isValid) borderColor = AppColors.secondary;
+    if (hasError) borderColor = AppColors.error;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +206,7 @@ class _RegisterViewState extends State<RegisterView> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: textColor,
+            color: AppColors.text,
           ),
         ),
         const SizedBox(height: 8),
@@ -216,18 +214,20 @@ class _RegisterViewState extends State<RegisterView> {
           controller: controller,
           keyboardType: keyboardType,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 15, color: textColor),
+          style: const TextStyle(fontSize: 15, color: AppColors.text),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: textSecondaryColor.withOpacity(0.6)),
+            hintStyle: TextStyle(
+              color: AppColors.textSecondary.withValues(alpha: 0.6),
+            ),
             filled: true,
             fillColor: Colors.white,
-            prefixIcon: Icon(icon, color: textSecondaryColor),
+            prefixIcon: Icon(icon, color: AppColors.textSecondary),
             suffixIcon: isValid
-                ? const Icon(Icons.check_circle, color: secondaryColor)
+                ? const Icon(Icons.check_circle, color: AppColors.secondary)
                 : (hasError
-                    ? const Icon(Icons.error_outline, color: errorColor)
-                    : null),
+                      ? const Icon(Icons.error_outline, color: AppColors.error)
+                      : null),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -243,8 +243,8 @@ class _RegisterViewState extends State<RegisterView> {
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(
                 color: hasError
-                    ? errorColor
-                    : (isValid ? secondaryColor : accentColor),
+                    ? AppColors.error
+                    : (isValid ? AppColors.secondary : AppColors.accent),
                 width: 2.0,
               ),
             ),
@@ -255,7 +255,7 @@ class _RegisterViewState extends State<RegisterView> {
           Text(
             errorText,
             style: const TextStyle(
-              color: errorColor,
+              color: AppColors.error,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),

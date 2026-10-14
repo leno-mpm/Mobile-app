@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/routes/app_routes.dart';
+import '../core/theme/app_colors.dart';
 import '../viewModel/login_view_model.dart';
 
 class LoginView extends StatefulWidget {
@@ -11,16 +12,6 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   final LoginViewModel _viewModel = LoginViewModel();
-
-  // Paleta de colores del documento Mint
-  static const Color primaryColor = Color(0xFF173B6C);
-  static const Color secondaryColor = Color(0xFF1E7F64);
-  static const Color accentColor = Color(0xFF4C8DF6);
-  static const Color backgroundColor = Color(0xFFF4F6FA);
-  static const Color textColor = Color(0xFF0F1B2D);
-  static const Color textSecondaryColor = Color(0xFF5A6577);
-  static const Color errorColor = Color(0xFFC0392B);
-
   @override
   void dispose() {
     _viewModel.dispose();
@@ -46,12 +37,12 @@ class _LoginViewState extends State<LoginView> {
           ),
           title: const Column(
             children: [
-              Icon(Icons.fingerprint, size: 64, color: primaryColor),
+              Icon(Icons.fingerprint, size: 64, color: AppColors.primary),
               SizedBox(height: 12),
               Text(
                 'Ingreso con huella',
                 style: TextStyle(
-                  color: textColor,
+                  color: AppColors.text,
                   fontWeight: FontWeight.w800,
                   fontSize: 20,
                 ),
@@ -61,14 +52,14 @@ class _LoginViewState extends State<LoginView> {
           content: const Text(
             'Coloca tu huella (validación simulada).\n\nSelecciona qué escenario deseas probar:',
             textAlign: TextAlign.center,
-            style: TextStyle(color: textSecondaryColor, fontSize: 15),
+            style: TextStyle(color: AppColors.secondary, fontSize: 15),
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
             OutlinedButton(
               style: OutlinedButton.styleFrom(
-                foregroundColor: errorColor,
-                side: const BorderSide(color: errorColor),
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -81,7 +72,7 @@ class _LoginViewState extends State<LoginView> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: secondaryColor,
+                backgroundColor: AppColors.secondary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -107,7 +98,7 @@ class _LoginViewState extends State<LoginView> {
       animation: _viewModel,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: backgroundColor,
+          backgroundColor: AppColors.background,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -121,7 +112,7 @@ class _LoginViewState extends State<LoginView> {
                       width: 84,
                       height: 84,
                       decoration: BoxDecoration(
-                        color: primaryColor,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: const Icon(
@@ -138,7 +129,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: textColor,
+                      color: AppColors.text,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -148,7 +139,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: textSecondaryColor,
+                      color: AppColors.secondary,
                     ),
                   ),
                   const SizedBox(height: 36),
@@ -159,14 +150,14 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: AppColors.text,
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _viewModel.userController,
                     onChanged: (_) => _viewModel.clearError(),
-                    style: const TextStyle(fontSize: 15, color: textColor),
+                    style: const TextStyle(fontSize: 15, color: AppColors.text),
                     decoration: _inputDecoration(
                       hint: 'Ej: 0123456789 o maria@gmail.com',
                       prefixIcon: Icons.person_outline,
@@ -180,7 +171,7 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: AppColors.text,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -188,7 +179,7 @@ class _LoginViewState extends State<LoginView> {
                     controller: _viewModel.passwordController,
                     obscureText: _viewModel.obscurePassword,
                     onChanged: (_) => _viewModel.clearError(),
-                    style: const TextStyle(fontSize: 15, color: textColor),
+                    style: const TextStyle(fontSize: 15, color: AppColors.text),
                     decoration: _inputDecoration(
                       hint: 'Ingresa tu contraseña',
                       prefixIcon: Icons.lock_outline,
@@ -197,7 +188,7 @@ class _LoginViewState extends State<LoginView> {
                           _viewModel.obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: textSecondaryColor,
+                          color: AppColors.secondary,
                         ),
                         onPressed: _viewModel.togglePasswordVisibility,
                       ),
@@ -210,19 +201,19 @@ class _LoginViewState extends State<LoginView> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: errorColor.withOpacity(0.1),
+                        color: AppColors.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: errorColor),
+                        border: Border.all(color: AppColors.error),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: errorColor),
+                          const Icon(Icons.error_outline, color: AppColors.error),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _viewModel.errorMessage!,
                               style: const TextStyle(
-                                color: errorColor,
+                                color: AppColors.error,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -240,7 +231,7 @@ class _LoginViewState extends State<LoginView> {
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -264,8 +255,8 @@ class _LoginViewState extends State<LoginView> {
                     height: 52,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: primaryColor,
-                        side: const BorderSide(color: primaryColor, width: 1.5),
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary, width: 1.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -291,7 +282,7 @@ class _LoginViewState extends State<LoginView> {
                       const Text(
                         '¿No tienes cuenta? ',
                         style: TextStyle(
-                          color: textSecondaryColor,
+                          color: AppColors.secondary,
                           fontSize: 15,
                         ),
                       ),
@@ -302,7 +293,7 @@ class _LoginViewState extends State<LoginView> {
                         child: const Text(
                           'Crea tu cuenta',
                           style: TextStyle(
-                            color: accentColor,
+                            color: AppColors.accent,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -323,7 +314,7 @@ class _LoginViewState extends State<LoginView> {
                     child: const Text(
                       'Datos mockeados (MockUsers):\nCédula: 0123456789  |  Usuario: maria@gmail.com\nContraseña: Mint1234',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: textSecondaryColor),
+                      style: TextStyle(fontSize: 12, color: AppColors.secondary),
                     ),
                   ),
                 ],
@@ -342,10 +333,10 @@ class _LoginViewState extends State<LoginView> {
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: textSecondaryColor.withOpacity(0.6)),
+      hintStyle: TextStyle(color: AppColors.secondary.withValues(alpha: 0.6)),
       filled: true,
       fillColor: Colors.white,
-      prefixIcon: Icon(prefixIcon, color: textSecondaryColor),
+      prefixIcon: Icon(prefixIcon, color: AppColors.secondary),
       suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       enabledBorder: OutlineInputBorder(
@@ -354,7 +345,7 @@ class _LoginViewState extends State<LoginView> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: accentColor, width: 2.0),
+        borderSide: const BorderSide(color: AppColors.accent, width: 2.0),
       ),
     );
   }
