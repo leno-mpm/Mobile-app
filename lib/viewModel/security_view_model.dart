@@ -7,14 +7,24 @@ class SecurityViewModel extends ChangeNotifier {
 
   SecurityViewModel(this.userId);
 
+  // =====================================================
+  // ESTADO DEL SWITCH DE HUELLA
+  // =====================================================
+
   bool get fingerprintEnabled {
     return MockAuthService.isFingerprintEnabled(userId);
   }
 
+  // Activar o desactivar la huella simulada.
   void setFingerprintEnabled(bool enabled) {
     MockAuthService.setFingerprintEnabled(userId, enabled);
+
     notifyListeners();
   }
+
+  // =====================================================
+  // CAMBIO DE CONTRASEÑA
+  // =====================================================
 
   String? changePassword({
     required String currentPassword,

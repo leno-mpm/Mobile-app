@@ -20,89 +20,52 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
+  // LOGIN CON CONTRASEÑA
   void _onLoginPressed() {
-    if (_viewModel.login()) {
+    final success = _viewModel.login();
+
+    if (success) {
       Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
     }
   }
 
-  Future<void> _showFingerprintModal() async {
-    _viewModel.clearError();
-
+  // LOGIN CON HUELLA SIMULADA
+  void _onFingerprintPressed() {
     if (!_viewModel.canUseFingerprint) {
-      _viewModel.loginWithFingerprint(isRecognized: true);
       return;
     }
 
-    final bool? recognized = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          title: const Column(
-            children: [
-              Icon(
-                Icons.fingerprint,
-                size: 64,
-                color: AppColors.primary,
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Ingreso con huella',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-          content: const Text(
-            'Validación simulada.\n\n'
-                'Selecciona el escenario que deseas probar:',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 15,
-            ),
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: [
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
-              ),
-              onPressed: () {
-                Navigator.pop(dialogContext, false);
-              },
-              child: const Text('No reconocida'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('Reconocida'),
-            ),
-          ],
-        );
-      },
-    );
+    final success = _viewModel.loginWithFingerprint();
 
-    if (!mounted || recognized == null) return;
-
-    if (_viewModel.loginWithFingerprint(
-      isRecognized: recognized,
-    )) {
+    if (success) {
       Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
     }
+  }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: AppColors.textSecondary.withValues(alpha: 0.6),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      prefixIcon: Icon(prefixIcon, color: AppColors.textSecondary),
+      suffixIcon: suffixIcon,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade400, width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.accent, width: 2),
+      ),
+    );
   }
 
   @override
@@ -110,19 +73,19 @@ class _LoginViewState extends State<LoginView> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final fingerprintEnabled = _viewModel.canUseFingerprint;
+
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 36,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 16),
 
+                  // LOGO
                   Center(
                     child: Container(
                       width: 84,
@@ -165,6 +128,7 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 36),
 
+                  // USUARIO O CÉDULA
                   const Text(
                     'Usuario o cédula',
                     style: TextStyle(
@@ -178,11 +142,10 @@ class _LoginViewState extends State<LoginView> {
 
                   TextField(
                     controller: _viewModel.userController,
-                    onChanged: (_) => _viewModel.clearError(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.text,
-                    ),
+                    onChanged: (_) {
+                      _viewModel.clearError();
+                    },
+                    style: const TextStyle(fontSize: 15, color: AppColors.text),
                     decoration: _inputDecoration(
                       hint: 'Ej: 0123456789 o maria@gmail.com',
                       prefixIcon: Icons.person_outline,
@@ -191,6 +154,7 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 20),
 
+                  // CONTRASEÑA
                   const Text(
                     'Contraseña',
                     style: TextStyle(
@@ -205,11 +169,10 @@ class _LoginViewState extends State<LoginView> {
                   TextField(
                     controller: _viewModel.passwordController,
                     obscureText: _viewModel.obscurePassword,
-                    onChanged: (_) => _viewModel.clearError(),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.text,
-                    ),
+                    onChanged: (_) {
+                      _viewModel.clearError();
+                    },
+                    style: const TextStyle(fontSize: 15, color: AppColors.text),
                     decoration: _inputDecoration(
                       hint: 'Ingresa tu contraseña',
                       prefixIcon: Icons.lock_outline,
@@ -225,8 +188,10 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
 
+                  // MENSAJES DE ERROR
                   if (_viewModel.errorMessage != null) ...[
                     const SizedBox(height: 16),
+
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -240,7 +205,9 @@ class _LoginViewState extends State<LoginView> {
                             Icons.error_outline,
                             color: AppColors.error,
                           ),
+
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: Text(
                               _viewModel.errorMessage!,
@@ -258,6 +225,7 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
+                  // BOTÓN INGRESAR
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
@@ -282,25 +250,42 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 14),
 
+                  // BOTÓN INGRESAR CON HUELLA
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(
-                          color: AppColors.primary,
+                        disabledForegroundColor: Colors.grey,
+                        side: BorderSide(
+                          color: fingerprintEnabled
+                              ? AppColors.primary
+                              : Colors.grey.shade300,
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: _showFingerprintModal,
-                      icon: const Icon(Icons.fingerprint, size: 24),
-                      label: const Text(
-                        'Ingresar con huella',
-                        style: TextStyle(
-                          fontSize: 15,
+
+                      // Si está desactivada, no se puede presionar.
+                      onPressed: fingerprintEnabled
+                          ? _onFingerprintPressed
+                          : null,
+
+                      icon: Icon(
+                        fingerprintEnabled
+                            ? Icons.fingerprint
+                            : Icons.lock_outline,
+                        size: 24,
+                      ),
+
+                      label: Text(
+                        fingerprintEnabled
+                            ? 'Ingresar con huella'
+                            : 'Ingreso con huella desactivado',
+                        style: const TextStyle(
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -309,6 +294,7 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
+                  // REGISTRO
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -319,12 +305,10 @@ class _LoginViewState extends State<LoginView> {
                           fontSize: 15,
                         ),
                       ),
+
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.register,
-                          );
+                          Navigator.pushNamed(context, AppRoutes.register);
                         },
                         child: const Text(
                           'Crea tu cuenta',
@@ -340,21 +324,20 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 24),
 
+                  // INFORMACIÓN MOCK
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: const Text(
                       'Usuario de prueba:\n'
-                          'Cédula: 0123456789\n'
-                          'Correo: maria@gmail.com\n'
-                          'Contraseña inicial: Mint1234\n\n'
-                          'Los cambios de contraseña son temporales.',
+                      'Cédula: 0123456789\n'
+                      'Correo: maria@gmail.com\n'
+                      'Contraseña inicial: Mint1234\n\n'
+                      'El ingreso con huella es simulado.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -368,44 +351,6 @@ class _LoginViewState extends State<LoginView> {
           ),
         );
       },
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required String hint,
-    required IconData prefixIcon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: AppColors.textSecondary.withValues(alpha: 0.6),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      prefixIcon: Icon(
-        prefixIcon,
-        color: AppColors.textSecondary,
-      ),
-      suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: Colors.grey.shade400,
-          width: 1.2,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.accent,
-          width: 2,
-        ),
-      ),
     );
   }
 }
