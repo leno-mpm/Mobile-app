@@ -5,7 +5,9 @@ import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
 import '../model/account_model.dart';
 import '../model/transaction_model.dart';
+import '../model/user_model.dart';
 import '../service/account_service.dart';
+import '../service/mock_auth_service.dart';
 import '../viewModel/dashboard_view_model.dart';
 import '../widget/account_card.dart';
 import '../widget/dashboard_bottom_nav.dart';
@@ -28,13 +30,16 @@ class _DashboardViewState extends State<DashboardView> {
   String? _selectedAccountId;
   bool _showBalance = true;
 
+  UserModel get _currentUser =>
+      MockAuthService.currentUser ?? MockUsers.currentUser;
+
   @override
   void initState() {
     super.initState();
 
     _viewModel = DashboardViewModel(AccountService());
 
-    _viewModel.loadDashboard(MockUsers.currentUser.id);
+    _viewModel.loadDashboard(_currentUser.id);
   }
 
   @override
@@ -174,14 +179,14 @@ class _DashboardViewState extends State<DashboardView> {
 
             return RefreshIndicator(
               onRefresh: () {
-                return _viewModel.loadDashboard(MockUsers.currentUser.id);
+                return _viewModel.loadDashboard(_currentUser.id);
               },
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
                   // ENCABEZADO
                   DashboardHeader(
-                    user: MockUsers.currentUser,
+                    user: _currentUser,
                     totalBalance: _viewModel.totalBalance,
                     accountCount: _viewModel.accounts.length,
                     showBalance: _showBalance,

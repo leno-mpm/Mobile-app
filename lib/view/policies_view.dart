@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
+import '../service/mock_auth_service.dart';
 import '../service/policy_service.dart';
 import '../viewModel/policies_view_model.dart';
 import '../widget/policy_card.dart';
@@ -22,7 +23,9 @@ class _PoliciesViewState extends State<PoliciesView> {
 
     _viewModel = PoliciesViewModel(PolicyService());
 
-    _viewModel.loadPolicies(MockUsers.currentUser.id);
+    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+
+    _viewModel.loadPolicies(userId);
   }
 
   @override
