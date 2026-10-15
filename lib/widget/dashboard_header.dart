@@ -9,6 +9,7 @@ class DashboardHeader extends StatelessWidget {
   final int accountCount;
   final bool showBalance;
   final VoidCallback onToggleBalance;
+  final String? avatarUrl;
 
   const DashboardHeader({
     super.key,
@@ -17,6 +18,7 @@ class DashboardHeader extends StatelessWidget {
     required this.accountCount,
     required this.showBalance,
     required this.onToggleBalance,
+    this.avatarUrl,
   });
 
   String _formatMoney(double amount) {
@@ -60,12 +62,30 @@ class DashboardHeader extends StatelessWidget {
               CircleAvatar(
                 radius: 22,
                 backgroundColor: const Color(0xFF41638F),
-                child: Text(
-                  _getInitials(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: ClipOval(
+                  child: avatarUrl != null
+                      ? Image.network(
+                          avatarUrl!,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Text(
+                              _getInitials(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        )
+                      : Text(
+                          _getInitials(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 

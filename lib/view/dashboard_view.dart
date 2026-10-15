@@ -283,6 +283,7 @@ class _DashboardViewState extends State<DashboardView> {
                     accountCount: _viewModel.accounts.length,
                     showBalance: _showBalance,
                     onToggleBalance: _toggleBalanceVisibility,
+                    avatarUrl: _viewModel.avatarUrl,
                   ),
 
                   const SizedBox(height: 24),

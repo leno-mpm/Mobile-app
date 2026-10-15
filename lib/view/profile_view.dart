@@ -26,7 +26,6 @@ class _ProfileViewState extends State<ProfileView> {
   late final SecurityViewModel _securityViewModel;
 
   final ImagePicker _imagePicker = ImagePicker();
-  File? _profileImage;
 
   @override
   void initState() {
@@ -62,7 +61,10 @@ class _ProfileViewState extends State<ProfileView> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+
   Future<void> _changeProfilePhoto() async {
+    if (_viewModel.isUploadingPhoto) return;
+
     try {
       final selectedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -72,16 +74,27 @@ class _ProfileViewState extends State<ProfileView> {
 
       if (selectedImage == null || !mounted) return;
 
-      setState(() {
-        _profileImage = File(selectedImage.path);
-      });
+      final success = await _viewModel.uploadProfilePhoto(
+        File(selectedImage.path),
+      );
 
-      _showMessage('Foto de perfil actualizada');
+      if (!mounted) return;
+
+      if (success) {
+        _showMessage('Foto de perfil guardada correctamente');
+      } else {
+        _showMessage(
+          _viewModel.errorMessage ??
+              'No se pudo guardar la fotografía',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       _showMessage('No se pudo seleccionar la imagen');
+      debugPrint('Error al seleccionar foto: $e');
     }
   }
+
 
   // ============================================================
   // CAMBIAR CONTRASEÑA
@@ -816,15 +829,17 @@ class _ProfileViewState extends State<ProfileView> {
                           ],
                         ),
                         alignment: Alignment.center,
+
                         child: ClipOval(
-                          child: _profileImage != null
-                              ? Image.file(
-                                  _profileImage!,
-                                  width: 108,
-                                  height: 108,
-                                  fit: BoxFit.cover,
-                                )
-                              : Text(
+                          child: _viewModel.avatarUrl != null
+                              ? Image.network(
+                            _viewModel.avatarUrl!,
+                            width: 108,
+                            height: 108,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
                                   _getInitials(user),
                                   style: const TextStyle(
                                     color: AppColors.primary,
@@ -832,7 +847,21 @@ class _ProfileViewState extends State<ProfileView> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                              );
+                            },
+                          )
+                              : Center(
+                            child: Text(
+                              _getInitials(user),
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
+
                       ),
 
                       Positioned(

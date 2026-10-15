@@ -16,6 +16,7 @@ class DashboardViewModel extends ChangeNotifier {
   List<AccountModel> _accounts = [];
   List<TransactionModel> _transactions = [];
   UserModel? _user;
+  String? _avatarUrl;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,6 +28,8 @@ class DashboardViewModel extends ChangeNotifier {
       List.unmodifiable(_transactions);
 
   UserModel? get user => _user;
+
+  String? get avatarUrl => _avatarUrl;
 
   bool get isLoading => _isLoading;
 
@@ -66,7 +69,7 @@ class DashboardViewModel extends ChangeNotifier {
           .from('profiles')
           .select(
         'id, username, first_name, last_name, '
-            'email, phone, identification',
+            'email, phone, identification, avatar_path',
       )
           .eq('id', userId)
           .maybeSingle();
@@ -84,6 +87,8 @@ class DashboardViewModel extends ChangeNotifier {
         phone: profile['phone'] as String,
         identification: profile['identification'] as String,
       );
+
+      await _loadAvatar(profile['avatar_path'] as String?);
 
       // Obtener las cuentas bancarias reales.
       _accounts =
@@ -109,6 +114,7 @@ class DashboardViewModel extends ChangeNotifier {
       _user = null;
       _accounts = [];
       _transactions = [];
+      _avatarUrl = null;
 
       _errorMessage = 'No se pudo cargar el Dashboard';
 
@@ -116,6 +122,22 @@ class DashboardViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadAvatar(String? path) async {
+    _avatarUrl = null;
+
+    if (path == null || path.isEmpty) {
+      return;
+    }
+
+    try {
+      _avatarUrl = await _supabase.storage
+          .from('profile-photos')
+          .createSignedUrl(path, 3600);
+    } catch (e) {
+      debugPrint('Error al recuperar la foto: $e');
     }
   }
 }
