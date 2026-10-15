@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
@@ -37,7 +36,7 @@ class _PoliciesViewState extends State<PoliciesView> {
 
     final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -74,15 +73,11 @@ class _PoliciesViewState extends State<PoliciesView> {
           listenable: _viewModel,
           builder: (context, child) {
             if (_viewModel.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             if (_viewModel.errorMessage != null) {
-              return Center(
-                child: Text(_viewModel.errorMessage!),
-              );
+              return Center(child: Text(_viewModel.errorMessage!));
             }
 
             if (_viewModel.policies.isEmpty) {
@@ -113,11 +108,9 @@ class _PoliciesViewState extends State<PoliciesView> {
 
                       Text(
                         'Cuando tengas una inversión a plazo '
-                            'fijo, podrás consultar sus detalles aquí.',
+                        'fijo, podrás consultar sus detalles aquí.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -126,12 +119,7 @@ class _PoliciesViewState extends State<PoliciesView> {
             }
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                16,
-                20,
-                30,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
               children: [
                 const Text(
                   'Consulta tus inversiones a plazo fijo.',
@@ -176,8 +164,8 @@ class _PoliciesViewState extends State<PoliciesView> {
 
                       Text(
                         '${_viewModel.policyCount} '
-                            '${_viewModel.policyCount == 1 ? 'póliza' : 'pólizas'} '
-                            'de inversión',
+                        '${_viewModel.policyCount == 1 ? 'póliza' : 'pólizas'} '
+                        'de inversión',
                         style: const TextStyle(
                           color: Color(0xFFDCE8F7),
                           fontSize: 12,
@@ -202,7 +190,7 @@ class _PoliciesViewState extends State<PoliciesView> {
 
                 // Listado de pólizas
                 ..._viewModel.policies.map(
-                      (policy) => Padding(
+                  (policy) => Padding(
                     padding: const EdgeInsets.only(bottom: 14),
                     child: PolicyCard(policy: policy),
                   ),

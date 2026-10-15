@@ -1,4 +1,3 @@
-
 class AppConstants {
   // Nombre de la aplicación
   static const String appName = 'Mint';

@@ -1,4 +1,3 @@
-
 import '../model/account_model.dart';
 
 class MockAccounts {

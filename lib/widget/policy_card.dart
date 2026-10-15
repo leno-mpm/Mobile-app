@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
@@ -7,17 +6,14 @@ import '../model/policy_model.dart';
 class PolicyCard extends StatelessWidget {
   final PolicyModel policy;
 
-  const PolicyCard({
-    super.key,
-    required this.policy,
-  });
+  const PolicyCard({super.key, required this.policy});
 
   String _formatMoney(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
 
     final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -39,17 +35,10 @@ class PolicyCard extends StatelessWidget {
         return SafeArea(
           top: false,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              20,
-              24,
-              28,
-            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(26),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -124,20 +113,14 @@ class PolicyCard extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  _detailRow(
-                    'Estado',
-                    policy.status,
-                  ),
+                  _detailRow('Estado', policy.status),
 
                   _detailRow(
                     'Tasa anual',
                     '${policy.annualInterestRate.toStringAsFixed(2)} %',
                   ),
 
-                  _detailRow(
-                    'Plazo',
-                    '${policy.termDays} días',
-                  ),
+                  _detailRow('Plazo', '${policy.termDays} días'),
 
                   _detailRow(
                     'Fecha de apertura',
@@ -149,10 +132,7 @@ class PolicyCard extends StatelessWidget {
                     _formatDate(policy.endDate),
                   ),
 
-                  _detailRow(
-                    'Moneda',
-                    policy.currency,
-                  ),
+                  _detailRow('Moneda', policy.currency),
 
                   const Divider(height: 28),
 
@@ -163,17 +143,15 @@ class PolicyCard extends StatelessWidget {
 
                   _detailRow(
                     'Monto estimado al vencimiento',
-                    _formatMoney(
-                      policy.estimatedMaturityAmount,
-                    ),
+                    _formatMoney(policy.estimatedMaturityAmount),
                   ),
 
                   const SizedBox(height: 8),
 
                   const Text(
                     'Los valores de interés son ilustrativos '
-                        'y pueden variar según las condiciones '
-                        'de la póliza.',
+                    'y pueden variar según las condiciones '
+                    'de la póliza.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 11,
@@ -188,9 +166,7 @@ class PolicyCard extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 15,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -320,12 +296,11 @@ class PolicyCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Tasa anual: '
-                        '${policy.annualInterestRate.toStringAsFixed(2)} %',
+                    '${policy.annualInterestRate.toStringAsFixed(2)} %',
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -345,16 +320,12 @@ class PolicyCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              const Divider(
-                height: 1,
-                color: Color(0xFFEEF0F4),
-              ),
+              const Divider(height: 1, color: Color(0xFFEEF0F4)),
 
               const SizedBox(height: 12),
 
               Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Vencimiento',

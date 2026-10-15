@@ -11,7 +11,6 @@ class LoginViewModel extends ChangeNotifier {
   bool obscurePassword = true;
   String? errorMessage;
 
-  // Compatibilidad con el registro actual.
   static final List<UserModel> registeredUsers =
       MockAuthService.registeredUsers;
 
@@ -37,21 +36,17 @@ class LoginViewModel extends ChangeNotifier {
     }
   }
 
-  // =====================================================
-  // LOGIN CON CONTRASEÑA
-  // =====================================================
-
   bool login() {
-    final inputUser = userController.text.trim();
-    final inputPass = passwordController.text;
+    final username = userController.text.trim();
+    final password = passwordController.text;
 
-    if (inputUser.isEmpty || inputPass.isEmpty) {
+    if (username.isEmpty || password.isEmpty) {
       errorMessage = 'Ingresa tu usuario y contraseña';
       notifyListeners();
       return false;
     }
 
-    final success = MockAuthService.login(inputUser, inputPass);
+    final success = MockAuthService.login(username, password);
 
     if (!success) {
       errorMessage = 'Usuario o contraseña incorrectos';
@@ -65,32 +60,18 @@ class LoginViewModel extends ChangeNotifier {
     return true;
   }
 
-  // =====================================================
-  // VERIFICAR SI EL BOTÓN DE HUELLA DEBE HABILITARSE
-  // =====================================================
-
   bool get canUseFingerprint {
-    final inputUser = userController.text.trim();
+    final username = userController.text.trim();
 
-    if (inputUser.isEmpty) {
-      return false;
-    }
+    final user = MockAuthService.findUser(username);
 
-    final user = MockAuthService.findUser(inputUser);
-
-    if (user == null) {
-      return false;
-    }
+    if (user == null) return false;
 
     return MockAuthService.isFingerprintEnabled(user.id);
   }
 
-  // =====================================================
-  // LOGIN DIRECTO CON HUELLA SIMULADA
-  // =====================================================
-
   bool loginWithFingerprint({bool isRecognized = true}) {
-    final inputUser = userController.text.trim();
+    final username = userController.text.trim();
 
     if (!canUseFingerprint) {
       errorMessage = 'El ingreso con huella no está habilitado';
@@ -99,7 +80,7 @@ class LoginViewModel extends ChangeNotifier {
     }
 
     final success = MockAuthService.loginWithFingerprint(
-      input: inputUser,
+      input: username,
       isRecognized: isRecognized,
     );
 
@@ -120,7 +101,6 @@ class LoginViewModel extends ChangeNotifier {
     userController.removeListener(_onUserChanged);
     userController.dispose();
     passwordController.dispose();
-
     super.dispose();
   }
 }

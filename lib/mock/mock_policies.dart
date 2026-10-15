@@ -1,4 +1,3 @@
-
 import '../model/policy_model.dart';
 
 class MockPolicies {

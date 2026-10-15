@@ -1,4 +1,3 @@
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -28,11 +27,9 @@ class _AccountCardState extends State<AccountCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
-  bool get _isSavings =>
-      widget.account.accountType.toLowerCase() == 'ahorros';
+  bool get _isSavings => widget.account.accountType.toLowerCase() == 'ahorros';
 
-  Color get _cardTextColor =>
-      _isSavings ? AppColors.primary : Colors.white;
+  Color get _cardTextColor => _isSavings ? AppColors.primary : Colors.white;
 
   @override
   void initState() {
@@ -67,7 +64,7 @@ class _AccountCardState extends State<AccountCard>
 
     final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -111,10 +108,10 @@ class _AccountCardState extends State<AccountCard>
               ..rotateY(angle),
             child: isBack
                 ? Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY(math.pi),
-              child: _buildBack(),
-            )
+                    alignment: Alignment.center,
+                    transform: Matrix4.rotationY(math.pi),
+                    child: _buildBack(),
+                  )
                 : _buildFront(),
           );
         },
@@ -147,9 +144,7 @@ class _AccountCardState extends State<AccountCard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          color: _isSavings
-              ? Colors.white
-              : AppColors.secondary,
+          color: _isSavings ? Colors.white : AppColors.secondary,
           padding: const EdgeInsets.all(20),
           child: Stack(
             clipBehavior: Clip.none,
@@ -203,11 +198,7 @@ class _AccountCardState extends State<AccountCard>
                         ],
                       ),
 
-                      Icon(
-                        Icons.wifi_rounded,
-                        color: textColor,
-                        size: 26,
-                      ),
+                      Icon(Icons.wifi_rounded, color: textColor, size: 26),
                     ],
                   ),
 
@@ -320,12 +311,7 @@ class _AccountCardState extends State<AccountCard>
 
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    10,
-                    20,
-                    10,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -362,18 +348,14 @@ class _AccountCardState extends State<AccountCard>
                             ),
                           ),
 
-                          _info(
-                            'MONEDA',
-                            widget.account.currency,
-                          ),
+                          _info('MONEDA', widget.account.currency),
                         ],
                       ),
 
                       const SizedBox(height: 6),
 
                       const Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Mint · Banca móvil',
@@ -407,10 +389,7 @@ class _AccountCardState extends State<AccountCard>
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
         ),
 
         const SizedBox(height: 5),

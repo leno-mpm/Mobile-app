@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../model/transaction_model.dart';
@@ -7,10 +6,7 @@ import '../core/theme/app_colors.dart';
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
 
-  const TransactionTile({
-    super.key,
-    required this.transaction,
-  });
+  const TransactionTile({super.key, required this.transaction});
 
   // Formatear el monto con separadores de miles
   String _formatMoney(double amount) {
@@ -18,7 +14,7 @@ class TransactionTile extends StatelessWidget {
 
     final integerPart = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$integerPart.${parts[1]}';
@@ -127,10 +123,7 @@ class TransactionTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 13,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -145,11 +138,7 @@ class TransactionTile extends StatelessWidget {
               color: _getIconBackground(),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              _getCategoryIcon(),
-              color: _getIconColor(),
-              size: 23,
-            ),
+            child: Icon(_getCategoryIcon(), color: _getIconColor(), size: 23),
           ),
 
           const SizedBox(width: 12),
@@ -191,9 +180,7 @@ class TransactionTile extends StatelessWidget {
           Text(
             formattedAmount,
             style: TextStyle(
-              color: isIncome
-                  ? AppColors.secondary
-                  : AppColors.text,
+              color: isIncome ? AppColors.secondary : AppColors.text,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),

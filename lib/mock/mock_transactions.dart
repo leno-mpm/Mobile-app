@@ -1,4 +1,3 @@
-
 import '../model/transaction_model.dart';
 
 class MockTransactions {

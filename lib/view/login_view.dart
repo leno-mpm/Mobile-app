@@ -20,16 +20,26 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  // LOGIN CON CONTRASEÑA
+  // =====================================================
+  // LOGIN CON USUARIO Y CONTRASEÑA
+  // =====================================================
+
   void _onLoginPressed() {
     final success = _viewModel.login();
 
     if (success) {
-      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.dashboard,
+        (route) => false,
+      );
     }
   }
 
+  // =====================================================
   // LOGIN CON HUELLA SIMULADA
+  // =====================================================
+
   void _onFingerprintPressed() {
     if (!_viewModel.canUseFingerprint) {
       return;
@@ -38,9 +48,49 @@ class _LoginViewState extends State<LoginView> {
     final success = _viewModel.loginWithFingerprint();
 
     if (success) {
-      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.dashboard,
+        (route) => false,
+      );
     }
   }
+
+  // =====================================================
+  // NAVEGAR AL REGISTRO Y RECIBIR EL NUEVO USUARIO
+  // =====================================================
+
+  Future<void> _onRegisterPressed() async {
+    debugPrint('SE PRESIONÓ CREAR CUENTA');
+
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.register,
+    );
+
+    final username = result as String?;
+
+    if (!mounted) return;
+
+    if (username != null) {
+      _viewModel.userController.text = username;
+      _viewModel.passwordController.clear();
+      _viewModel.clearError();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.secondary,
+          content: Text(
+            '¡Cuenta creada! Inicia sesión con $username',
+          ),
+        ),
+      );
+    }
+  }
+
+  // =====================================================
+  // DECORACIÓN DE LOS CAMPOS
+  // =====================================================
 
   InputDecoration _inputDecoration({
     required String hint,
@@ -68,6 +118,10 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
+  // =====================================================
+  // INTERFAZ
+  // =====================================================
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -85,7 +139,9 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   const SizedBox(height: 16),
 
+                  // =====================================================
                   // LOGO
+                  // =====================================================
                   Center(
                     child: Container(
                       width: 84,
@@ -128,9 +184,11 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 36),
 
-                  // USUARIO O CÉDULA
+                  // =====================================================
+                  // NOMBRE DE USUARIO
+                  // =====================================================
                   const Text(
-                    'Usuario o cédula',
+                    'Nombre de usuario',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -142,19 +200,24 @@ class _LoginViewState extends State<LoginView> {
 
                   TextField(
                     controller: _viewModel.userController,
+                    autocorrect: false,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.next,
                     onChanged: (_) {
                       _viewModel.clearError();
                     },
                     style: const TextStyle(fontSize: 15, color: AppColors.text),
                     decoration: _inputDecoration(
-                      hint: 'Ej: 0123456789 o maria@gmail.com',
+                      hint: 'Ej: maria.gonzalez',
                       prefixIcon: Icons.person_outline,
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
+                  // =====================================================
                   // CONTRASEÑA
+                  // =====================================================
                   const Text(
                     'Contraseña',
                     style: TextStyle(
@@ -169,6 +232,8 @@ class _LoginViewState extends State<LoginView> {
                   TextField(
                     controller: _viewModel.passwordController,
                     obscureText: _viewModel.obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _onLoginPressed(),
                     onChanged: (_) {
                       _viewModel.clearError();
                     },
@@ -188,7 +253,9 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
 
+                  // =====================================================
                   // MENSAJES DE ERROR
+                  // =====================================================
                   if (_viewModel.errorMessage != null) ...[
                     const SizedBox(height: 16),
 
@@ -225,7 +292,9 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
+                  // =====================================================
                   // BOTÓN INGRESAR
+                  // =====================================================
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
@@ -250,7 +319,9 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 14),
 
-                  // BOTÓN INGRESAR CON HUELLA
+                  // =====================================================
+                  // BOTÓN INGRESAR CON HUELLA SIMULADA
+                  // =====================================================
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
@@ -268,7 +339,8 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
 
-                      // Si está desactivada, no se puede presionar.
+                      // Desactivado cuando el usuario no tiene
+                      // habilitada la huella simulada.
                       onPressed: fingerprintEnabled
                           ? _onFingerprintPressed
                           : null,
@@ -294,7 +366,9 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
-                  // REGISTRO
+                  // =====================================================
+                  // REGISTRO DE NUEVOS USUARIOS
+                  // =====================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -307,9 +381,7 @@ class _LoginViewState extends State<LoginView> {
                       ),
 
                       GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, AppRoutes.register);
-                        },
+                        onTap: _onRegisterPressed,
                         child: const Text(
                           'Crea tu cuenta',
                           style: TextStyle(
@@ -324,7 +396,9 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 24),
 
-                  // INFORMACIÓN MOCK
+                  // =====================================================
+                  // INFORMACIÓN DEL USUARIO DE PRUEBA
+                  // =====================================================
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -334,9 +408,8 @@ class _LoginViewState extends State<LoginView> {
                     ),
                     child: const Text(
                       'Usuario de prueba:\n'
-                      'Cédula: 0123456789\n'
-                      'Correo: maria@gmail.com\n'
-                      'Contraseña inicial: Mint1234\n\n'
+                      'Usuario: maria.gonzalez\n'
+                      'Contraseña: Mint1234\n\n'
                       'El ingreso con huella es simulado.',
                       textAlign: TextAlign.center,
                       style: TextStyle(

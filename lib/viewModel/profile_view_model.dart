@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 
 import '../model/user_model.dart';

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
@@ -25,7 +24,7 @@ class DashboardHeader extends StatelessWidget {
 
     final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -36,7 +35,7 @@ class DashboardHeader extends StatelessWidget {
     final last = user.lastName.trim();
 
     return '${first.isNotEmpty ? first[0] : ''}'
-        '${last.isNotEmpty ? last[0] : ''}'
+            '${last.isNotEmpty ? last[0] : ''}'
         .toUpperCase();
   }
 
@@ -78,10 +77,7 @@ class DashboardHeader extends StatelessWidget {
                   children: [
                     const Text(
                       'Buenos días,',
-                      style: TextStyle(
-                        color: Color(0xFFD5E2F2),
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Color(0xFFD5E2F2), fontSize: 12),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -107,10 +103,7 @@ class DashboardHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF365C89),
               borderRadius: BorderRadius.circular(19),
-              border: Border.all(
-                color: const Color(0xFF7290B5),
-                width: 0.7,
-              ),
+              border: Border.all(color: const Color(0xFF7290B5), width: 0.7),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,9 +140,7 @@ class DashboardHeader extends StatelessWidget {
                 const SizedBox(height: 4),
 
                 Text(
-                  showBalance
-                      ? _formatMoney(totalBalance)
-                      : '••••••••',
+                  showBalance ? _formatMoney(totalBalance) : '••••••••',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -161,7 +152,7 @@ class DashboardHeader extends StatelessWidget {
 
                 Text(
                   'Distribuido en $accountCount '
-                      '${accountCount == 1 ? 'cuenta' : 'cuentas'}',
+                  '${accountCount == 1 ? 'cuenta' : 'cuentas'}',
                   style: const TextStyle(
                     color: Color(0xFFDCE8F7),
                     fontSize: 12,

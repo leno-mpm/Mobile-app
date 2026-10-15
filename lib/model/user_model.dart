@@ -1,6 +1,6 @@
-
 class UserModel {
   final String id;
+  final String username;
   final String firstName;
   final String lastName;
   final String email;
@@ -9,6 +9,7 @@ class UserModel {
 
   const UserModel({
     required this.id,
+    required this.username,
     required this.firstName,
     required this.lastName,
     required this.email,
@@ -19,6 +20,7 @@ class UserModel {
   String get fullName => '$firstName $lastName';
 
   UserModel copyWith({
+    String? username,
     String? firstName,
     String? lastName,
     String? email,
@@ -27,6 +29,7 @@ class UserModel {
   }) {
     return UserModel(
       id: id,
+      username: username ?? this.username,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,

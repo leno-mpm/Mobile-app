@@ -14,7 +14,7 @@ class UserService {
 
   Future<UserModel> updateUser(UserModel updatedUser) async {
     final index = MockAuthService.registeredUsers.indexWhere(
-          (user) => user.id == updatedUser.id,
+      (user) => user.id == updatedUser.id,
     );
 
     if (index == -1) {

@@ -5,16 +5,18 @@ import 'package:mobile_app/model/transaction_model.dart';
 
 class AccountService {
   //Obtener todas as cuentas de un usuario
-  Future<List<AccountModel>> getAccountsByUser(String userId,) async{
+  Future<List<AccountModel>> getAccountsByUser(String userId) async {
     return MockAccounts.accounts
         .where((account) => account.userId == userId)
         .toList();
   }
-  
+
   //Obtener las transacciones de una cuenta
-  Future<List<TransactionModel>> getTransactionsByAccount(String accountId,) async{
-      return MockTransactions.transactions
-          .where((transaction)=> transaction.accountId == accountId)
-          .toList();
+  Future<List<TransactionModel>> getTransactionsByAccount(
+    String accountId,
+  ) async {
+    return MockTransactions.transactions
+        .where((transaction) => transaction.accountId == accountId)
+        .toList();
   }
 }

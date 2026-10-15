@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
@@ -23,7 +22,7 @@ class TransactionDetailView extends StatelessWidget {
 
     final formatted = number.replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -55,10 +54,7 @@ class TransactionDetailView extends StatelessWidget {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  Widget _detailRow({
-    required String label,
-    required String value,
-  }) {
+  Widget _detailRow({required String label, required String value}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -89,9 +85,7 @@ class TransactionDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amountColor = _isIncome
-        ? AppColors.secondary
-        : AppColors.error;
+    final amountColor = _isIncome ? AppColors.secondary : AppColors.error;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -218,23 +212,17 @@ class TransactionDetailView extends StatelessWidget {
                   if (account != null) ...[
                     _detailRow(
                       label: 'Cuenta',
-                      value: '${account!.accountType} '
+                      value:
+                          '${account!.accountType} '
                           '${account!.accountNumber}',
                     ),
 
-                    const Divider(
-                      color: Color(0xFFEEF0F4),
-                    ),
+                    const Divider(color: Color(0xFFEEF0F4)),
                   ],
 
-                  _detailRow(
-                    label: 'Categoría',
-                    value: transaction.category,
-                  ),
+                  _detailRow(label: 'Categoría', value: transaction.category),
 
-                  const Divider(
-                    color: Color(0xFFEEF0F4),
-                  ),
+                  const Divider(color: Color(0xFFEEF0F4)),
 
                   _detailRow(
                     label: 'Tipo de movimiento',

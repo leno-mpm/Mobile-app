@@ -7,7 +7,7 @@ class DashboardViewModel extends ChangeNotifier {
   final AccountService _accountService;
   DashboardViewModel(this._accountService);
 
-  List<AccountModel> _accounts= [];
+  List<AccountModel> _accounts = [];
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -19,9 +19,11 @@ class DashboardViewModel extends ChangeNotifier {
 
   //Calcular el saldo total
   double get totalBalance {
-    return _accounts.fold<double>(0.0, (total, account) => total + account.balance);
+    return _accounts.fold<double>(
+      0.0,
+      (total, account) => total + account.balance,
+    );
   }
-
 
   // Cargar la información del Dashboard
   Future<void> loadDashboard(String userId) async {
@@ -33,19 +35,18 @@ class DashboardViewModel extends ChangeNotifier {
       final List<TransactionModel> allTransactions = [];
 
       for (final account in _accounts) {
-        final accountTransactions = await _accountService.getTransactionsByAccount(account.id);
+        final accountTransactions = await _accountService
+            .getTransactionsByAccount(account.id);
         allTransactions.addAll(accountTransactions);
       }
 
       allTransactions.sort((a, b) => b.date.compareTo(a.date));
       _transactions = allTransactions;
-
     } catch (e) {
       _accounts = [];
       _transactions = [];
       _errorMessage = 'No se pudo cargar el Dashboard';
       debugPrint('Error al cargar Dashboard: $e');
-
     } finally {
       _isLoading = false;
       notifyListeners();

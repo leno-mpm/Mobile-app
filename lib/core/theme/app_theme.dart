@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../constants/app_constants.dart';
@@ -35,9 +34,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              AppConstants.borderRadius,
-            ),
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           ),
         ),
       ),
@@ -47,18 +44,11 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppConstants.borderRadius,
-          ),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppConstants.borderRadius,
-          ),
-          borderSide: const BorderSide(
-            color: AppColors.accent,
-            width: 2,
-          ),
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          borderSide: const BorderSide(color: AppColors.accent, width: 2),
         ),
       ),
     );

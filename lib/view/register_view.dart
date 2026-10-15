@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/core/theme/app_colors.dart';
+import 'package:flutter/services.dart';
 
+import '../core/theme/app_colors.dart';
 import '../viewModel/register_view_model.dart';
 
 class RegisterView extends StatefulWidget {
@@ -20,20 +21,13 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   void _onContinuePressed() {
-    _viewModel.registerNewUser();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.secondary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        content: const Text(
-          '¡Cuenta creada! Inicia sesión con tu cédula y clave Mint1234',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-    // Vuelve a la Pantalla Login como indica el Flujo 1
-    Navigator.pop(context);
+    final username = _viewModel.usernameController.text.trim().toLowerCase();
+
+    final success = _viewModel.registerNewUser();
+
+    if (!success) return;
+
+    Navigator.pop(context, username);
   }
 
   @override
@@ -72,6 +66,7 @@ class _RegisterViewState extends State<RegisterView> {
                       color: AppColors.textSecondary,
                     ),
                   ),
+
                   const SizedBox(height: 24),
 
                   _buildField(
@@ -83,23 +78,43 @@ class _RegisterViewState extends State<RegisterView> {
                     errorText: _viewModel.fullNameError,
                     onChanged: _viewModel.onFullNameChanged,
                   ),
+
+                  const SizedBox(height: 18),
+
+                  _buildField(
+                    label: 'Nombre de usuario',
+                    hint: 'Ej: maria.gonzalez',
+                    icon: Icons.person_outline,
+                    controller: _viewModel.usernameController,
+                    touched: _viewModel.usernameTouched,
+                    errorText: _viewModel.usernameError,
+                    onChanged: _viewModel.onUsernameChanged,
+                    helperText:
+                        'De 4 a 20 caracteres. Debe comenzar con una letra.',
+                  ),
+
                   const SizedBox(height: 18),
 
                   _buildField(
                     label: 'Cédula',
-                    hint: '10 dígitos (Ej: 0123456789)',
+                    hint: '10 dígitos',
                     icon: Icons.credit_card_outlined,
                     controller: _viewModel.identificationController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     touched: _viewModel.identificationTouched,
                     errorText: _viewModel.identificationError,
                     onChanged: _viewModel.onIdentificationChanged,
                   ),
+
                   const SizedBox(height: 18),
 
                   _buildField(
                     label: 'Correo',
-                    hint: 'maria@gmail.com',
+                    hint: 'ejemplo@gmail.com',
                     icon: Icons.email_outlined,
                     controller: _viewModel.emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -107,6 +122,7 @@ class _RegisterViewState extends State<RegisterView> {
                     errorText: _viewModel.emailError,
                     onChanged: _viewModel.onEmailChanged,
                   ),
+
                   const SizedBox(height: 18),
 
                   _buildField(
@@ -115,13 +131,139 @@ class _RegisterViewState extends State<RegisterView> {
                     icon: Icons.phone_android_outlined,
                     controller: _viewModel.phoneController,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     touched: _viewModel.phoneTouched,
                     errorText: _viewModel.phoneError,
                     onChanged: _viewModel.onPhoneChanged,
                   ),
+
+                  const SizedBox(height: 24),
+
+                  const Divider(),
+
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Seguridad de tu cuenta',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  _buildField(
+                    label: 'Contraseña',
+                    hint: 'Crea tu contraseña',
+                    icon: Icons.lock_outline,
+                    controller: _viewModel.passwordController,
+                    touched: _viewModel.passwordTouched,
+                    errorText: _viewModel.passwordError,
+                    onChanged: _viewModel.onPasswordChanged,
+                    obscureText: _viewModel.obscurePassword,
+                    showValidationIcon: false,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _viewModel.obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.secondary,
+                      ),
+                      onPressed: _viewModel.togglePasswordVisibility,
+                    ),
+                  ),
+
+                  if (_viewModel.passwordTouched) ...[
+                    const SizedBox(height: 12),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tu contraseña debe contener:',
+                            style: TextStyle(
+                              color: AppColors.text,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          _passwordRequirement(
+                            'Al menos 8 caracteres',
+                            _viewModel.hasMinimumLength,
+                          ),
+
+                          _passwordRequirement(
+                            'Una letra mayúscula',
+                            _viewModel.hasUppercase,
+                          ),
+
+                          _passwordRequirement(
+                            'Una letra minúscula',
+                            _viewModel.hasLowercase,
+                          ),
+
+                          _passwordRequirement(
+                            'Un número',
+                            _viewModel.hasNumber,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 18),
+
+                  _buildField(
+                    label: 'Confirmar contraseña',
+                    hint: 'Repite tu contraseña',
+                    icon: Icons.lock_reset_outlined,
+                    controller: _viewModel.confirmPasswordController,
+                    touched: _viewModel.confirmPasswordTouched,
+                    errorText: _viewModel.confirmPasswordError,
+                    onChanged: _viewModel.onConfirmPasswordChanged,
+                    obscureText: _viewModel.obscureConfirmPassword,
+                    showValidationIcon: false,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _viewModel.obscureConfirmPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.secondary,
+                      ),
+                      onPressed: _viewModel.toggleConfirmPasswordVisibility,
+                    ),
+                  ),
+
+                  if (_viewModel.registrationError != null) ...[
+                    const SizedBox(height: 18),
+
+                    Text(
+                      _viewModel.registrationError!,
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 32),
 
-                  // Botón Continuar (Se habilita solo cuando los 4 campos son válidos)
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
@@ -139,7 +281,7 @@ class _RegisterViewState extends State<RegisterView> {
                           ? _onContinuePressed
                           : null,
                       child: const Text(
-                        'Continuar',
+                        'Crear cuenta',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -147,13 +289,14 @@ class _RegisterViewState extends State<RegisterView> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        '¿Deseas volver? ',
+                        '¿Ya tienes cuenta? ',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 15,
@@ -172,12 +315,44 @@ class _RegisterViewState extends State<RegisterView> {
                       ),
                     ],
                   ),
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _passwordRequirement(String label, bool fulfilled) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        children: [
+          Icon(
+            fulfilled ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: fulfilled ? AppColors.secondary : AppColors.textSecondary,
+            size: 18,
+          ),
+
+          const SizedBox(width: 10),
+
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: fulfilled
+                    ? AppColors.secondary
+                    : AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: fulfilled ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -190,11 +365,17 @@ class _RegisterViewState extends State<RegisterView> {
     required String? errorText,
     required ValueChanged<String> onChanged,
     TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    bool showValidationIcon = true,
+    Widget? suffixIcon,
+    String? helperText,
+    List<TextInputFormatter>? inputFormatters,
   }) {
-    final bool isValid = touched && errorText == null;
-    final bool hasError = touched && errorText != null;
+    final isValid = touched && errorText == null;
+    final hasError = touched && errorText != null;
 
     Color borderColor = Colors.grey.shade400;
+
     if (isValid) borderColor = AppColors.secondary;
     if (hasError) borderColor = AppColors.error;
 
@@ -209,11 +390,16 @@ class _RegisterViewState extends State<RegisterView> {
             color: AppColors.text,
           ),
         ),
+
         const SizedBox(height: 8),
+
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          obscureText: obscureText,
+          inputFormatters: inputFormatters,
           onChanged: onChanged,
+          autocorrect: false,
           style: const TextStyle(fontSize: 15, color: AppColors.text),
           decoration: InputDecoration(
             hintText: hint,
@@ -223,11 +409,21 @@ class _RegisterViewState extends State<RegisterView> {
             filled: true,
             fillColor: Colors.white,
             prefixIcon: Icon(icon, color: AppColors.textSecondary),
-            suffixIcon: isValid
-                ? const Icon(Icons.check_circle, color: AppColors.secondary)
-                : (hasError
-                      ? const Icon(Icons.error_outline, color: AppColors.error)
-                      : null),
+            suffixIcon:
+                suffixIcon ??
+                (showValidationIcon
+                    ? (isValid
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: AppColors.secondary,
+                            )
+                          : (hasError
+                                ? const Icon(
+                                    Icons.error_outline,
+                                    color: AppColors.error,
+                                  )
+                                : null))
+                    : null),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -245,11 +441,23 @@ class _RegisterViewState extends State<RegisterView> {
                 color: hasError
                     ? AppColors.error
                     : (isValid ? AppColors.secondary : AppColors.accent),
-                width: 2.0,
+                width: 2,
               ),
             ),
           ),
         ),
+
+        if (helperText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            helperText,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+
         if (hasError) ...[
           const SizedBox(height: 6),
           Text(

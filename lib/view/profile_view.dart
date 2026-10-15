@@ -6,12 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../mock/mock_users.dart';
+import '../model/transaction_model.dart';
 import '../model/user_model.dart';
+import '../service/account_service.dart';
 import '../service/mock_auth_service.dart';
 import '../service/user_service.dart';
 import '../viewModel/profile_view_model.dart';
 import '../viewModel/security_view_model.dart';
 import '../widget/dashboard_bottom_nav.dart';
+import 'movements_view.dart';
 import 'policies_view.dart';
 
 class ProfileView extends StatefulWidget {
@@ -526,6 +529,37 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   // ============================================================
+  // IR A MOVIMIENTOS
+  // ============================================================
+
+  Future<void> _openMovements() async {
+    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+    final accountService = AccountService();
+
+    final accounts = await accountService.getAccountsByUser(userId);
+
+    final List<TransactionModel> transactions = [];
+    for (final account in accounts) {
+      transactions.addAll(
+        await accountService.getTransactionsByAccount(account.id),
+      );
+    }
+    transactions.sort((a, b) => b.date.compareTo(a.date));
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovementsView(
+          transactions: transactions,
+          accounts: accounts,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // CERRAR SESIÓN
   // ============================================================
 
@@ -685,11 +719,12 @@ class _ProfileViewState extends State<ProfileView> {
             return;
           }
 
-          _showMessage(
-            index == 1
-                ? 'Movimientos estará disponible próximamente'
-                : 'Pagos estará disponible próximamente',
-          );
+          if (index == 1) {
+            _openMovements();
+            return;
+          }
+
+          _showMessage('Pagos estará disponible próximamente');
         },
       ),
 
