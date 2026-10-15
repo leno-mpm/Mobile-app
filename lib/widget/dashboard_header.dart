@@ -5,32 +5,13 @@ import '../model/user_model.dart';
 
 class DashboardHeader extends StatelessWidget {
   final UserModel user;
-  final double totalBalance;
-  final int accountCount;
-  final bool showBalance;
-  final VoidCallback onToggleBalance;
   final String? avatarUrl;
 
   const DashboardHeader({
     super.key,
     required this.user,
-    required this.totalBalance,
-    required this.accountCount,
-    required this.showBalance,
-    required this.onToggleBalance,
     this.avatarUrl,
   });
-
-  String _formatMoney(double amount) {
-    final parts = amount.toStringAsFixed(2).split('.');
-
-    final formatted = parts[0].replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => ',',
-    );
-
-    return '\$$formatted.${parts[1]}';
-  }
 
   String _getInitials() {
     final first = user.firstName.trim();
@@ -53,129 +34,55 @@ class DashboardHeader extends StatelessWidget {
           bottomRight: Radius.circular(28),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Saludo y avatar
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: const Color(0xFF41638F),
-                child: ClipOval(
-                  child: avatarUrl != null
-                      ? Image.network(
-                          avatarUrl!,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Text(
-                              _getInitials(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
-                        )
-                      : Text(
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: const Color(0xFF41638F),
+            child: ClipOval(
+              child: avatarUrl != null
+                  ? Image.network(
+                      avatarUrl!,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
                           _getInitials(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Buenos días,',
-                      style: TextStyle(color: Color(0xFFD5E2F2), fontSize: 12),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      user.firstName,
+                        );
+                      },
+                    )
+                  : Text(
+                      _getInitials(),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(width: 12),
 
-          // Resumen general del dinero
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF365C89),
-              borderRadius: BorderRadius.circular(19),
-              border: Border.all(color: const Color(0xFF7290B5), width: 0.7),
-            ),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Saldo total disponible',
-                        style: TextStyle(
-                          color: Color(0xFFDCE8F7),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-
-                    IconButton(
-                      tooltip: showBalance
-                          ? 'Ocultar saldos'
-                          : 'Mostrar saldos',
-                      onPressed: onToggleBalance,
-                      icon: Icon(
-                        showBalance
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'Buenos días,',
+                  style: TextStyle(color: Color(0xFFD5E2F2), fontSize: 12),
                 ),
-
-                const SizedBox(height: 4),
-
+                const SizedBox(height: 3),
                 Text(
-                  showBalance ? _formatMoney(totalBalance) : '••••••••',
+                  user.firstName,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 32,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'Distribuido en $accountCount '
-                  '${accountCount == 1 ? 'cuenta' : 'cuentas'}',
-                  style: const TextStyle(
-                    color: Color(0xFFDCE8F7),
-                    fontSize: 12,
                   ),
                 ),
               ],

@@ -11,6 +11,7 @@ import '../service/account_service.dart';
 import '../viewModel/dashboard_view_model.dart';
 
 import '../widget/account_card.dart';
+import '../widget/balance_summary_card.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import '../widget/dashboard_header.dart';
 import '../widget/transaction_tile.dart';
@@ -279,10 +280,6 @@ class _DashboardViewState extends State<DashboardView> {
 
                   DashboardHeader(
                     user: currentUser,
-                    totalBalance: _viewModel.totalBalance,
-                    accountCount: _viewModel.accounts.length,
-                    showBalance: _showBalance,
-                    onToggleBalance: _toggleBalanceVisibility,
                     avatarUrl: _viewModel.avatarUrl,
                   ),
 
@@ -365,6 +362,8 @@ class _DashboardViewState extends State<DashboardView> {
                               account: account,
                               isSelected: isSelected,
                               showBalance: _showBalance,
+                              userEmail: currentUser.email,
+                              userIdentification: currentUser.identification,
                               onTap: () {
                                 _selectAccount(account.id);
                               },
@@ -373,6 +372,21 @@ class _DashboardViewState extends State<DashboardView> {
                         },
                       ),
                     ),
+
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // SALDO TOTAL
+                  // ==========================================
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: BalanceSummaryCard(
+                      totalBalance: _viewModel.totalBalance,
+                      accountCount: _viewModel.accounts.length,
+                      showBalance: _showBalance,
+                      onToggleBalance: _toggleBalanceVisibility,
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 
