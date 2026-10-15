@@ -82,7 +82,7 @@ class _RegisterViewState extends State<RegisterView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Llena tus datos para registrarte en Mint.',
+                    'Llena tus datos para registrarte en Mint',
                     style: TextStyle(
                       fontSize: 15,
                       color: AppColors.textSecondary,
@@ -120,7 +120,7 @@ class _RegisterViewState extends State<RegisterView> {
                     errorText: _viewModel.usernameError,
                     onChanged: _viewModel.onUsernameChanged,
                     helperText:
-                    'De 4 a 20 caracteres. Debe comenzar con una letra.',
+                    'De 4 a 20 caracteres, debe comenzar con una letra',
                   ),
 
                   const SizedBox(height: 18),
