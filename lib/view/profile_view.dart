@@ -2,20 +2,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
-import '../mock/mock_users.dart';
 import '../model/transaction_model.dart';
 import '../model/user_model.dart';
 import '../service/account_service.dart';
-import '../service/mock_auth_service.dart';
-import '../service/user_service.dart';
 import '../viewModel/profile_view_model.dart';
 import '../viewModel/security_view_model.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import 'movements_view.dart';
 import 'policies_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -35,12 +32,12 @@ class _ProfileViewState extends State<ProfileView> {
   void initState() {
     super.initState();
 
-    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
 
-    _viewModel = ProfileViewModel(UserService());
-    _securityViewModel = SecurityViewModel(userId);
+    _viewModel = ProfileViewModel();
+    _securityViewModel = SecurityViewModel(userId ?? '');
 
-    _viewModel.loadProfile(userId);
+    _viewModel.loadProfile();
   }
 
   @override
@@ -332,7 +329,7 @@ class _ProfileViewState extends State<ProfileView> {
 
       if (!mounted || result == null) return;
 
-      final error = _securityViewModel.changePassword(
+      final error = await _securityViewModel.changePassword(
         currentPassword: result['current']!,
         newPassword: result['new']!,
         confirmPassword: result['confirm']!,
@@ -533,7 +530,12 @@ class _ProfileViewState extends State<ProfileView> {
   // ============================================================
 
   Future<void> _openMovements() async {
-    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (userId == null) {
+      _showMessage('Debes iniciar sesión');
+      return;
+    }
     final accountService = AccountService();
 
     final accounts = await accountService.getAccountsByUser(userId);
@@ -563,13 +565,22 @@ class _ProfileViewState extends State<ProfileView> {
   // CERRAR SESIÓN
   // ============================================================
 
-  void _logout() {
-    MockAuthService.logout();
+  Future<void> _logout() async {
+    final success = await _viewModel.logout();
+
+    if (!mounted) return;
+
+    if (!success) {
+      _showMessage(
+        _viewModel.errorMessage ?? 'No se pudo cerrar sesión',
+      );
+      return;
+    }
 
     Navigator.pushNamedAndRemoveUntil(
       context,
       AppRoutes.login,
-      (route) => false,
+          (route) => false,
     );
   }
 

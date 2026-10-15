@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
 
-import '../model/user_model.dart';
-import '../service/mock_auth_service.dart';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   final fullNameController = TextEditingController();
@@ -11,6 +10,8 @@ class RegisterViewModel extends ChangeNotifier {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   bool fullNameTouched = false;
   bool usernameTouched = false;
@@ -23,6 +24,7 @@ class RegisterViewModel extends ChangeNotifier {
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
 
+  bool isLoading = false;
   String? registrationError;
 
   void onFullNameChanged(String value) {
@@ -70,6 +72,10 @@ class RegisterViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ==========================================
+  // VALIDACIONES DE DATOS PERSONALES
+  // ==========================================
+
   String? get fullNameError {
     final value = fullNameController.text.trim();
 
@@ -91,12 +97,9 @@ class RegisterViewModel extends ChangeNotifier {
       return 'Ingresa un nombre de usuario';
     }
 
-    if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9._]{3,19}$').hasMatch(value)) {
+    if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9._]{3,19}$')
+        .hasMatch(value)) {
       return 'Usa de 4 a 20 caracteres: letras, números, punto o guion bajo. Debe comenzar con una letra';
-    }
-
-    if (MockAuthService.usernameExists(value)) {
-      return 'Este nombre de usuario ya está registrado';
     }
 
     return null;
@@ -113,10 +116,6 @@ class RegisterViewModel extends ChangeNotifier {
       return 'La cédula debe tener 10 dígitos numéricos';
     }
 
-    if (MockAuthService.identificationExists(value)) {
-      return 'Esta cédula ya está registrada';
-    }
-
     return null;
   }
 
@@ -127,12 +126,10 @@ class RegisterViewModel extends ChangeNotifier {
       return 'Ingresa tu correo electrónico';
     }
 
-    if (!RegExp(r'^[\w.+-]+@([\w-]+\.)+[a-zA-Z]{2,}$').hasMatch(value)) {
+    if (!RegExp(
+      r'^[\w.+-]+@([\w-]+\.)+[a-zA-Z]{2,}$',
+    ).hasMatch(value)) {
       return 'Ingresa un correo electrónico válido';
-    }
-
-    if (MockAuthService.emailExists(value)) {
-      return 'Este correo ya está registrado';
     }
 
     return null;
@@ -152,13 +149,27 @@ class RegisterViewModel extends ChangeNotifier {
     return null;
   }
 
-  bool get hasMinimumLength => passwordController.text.length >= 8;
+  // ==========================================
+  // VALIDACIONES DE CONTRASEÑA
+  // ==========================================
 
-  bool get hasUppercase => RegExp(r'[A-Z]').hasMatch(passwordController.text);
+  bool get hasMinimumLength =>
+      passwordController.text.length >= 8;
 
-  bool get hasLowercase => RegExp(r'[a-z]').hasMatch(passwordController.text);
+  bool get hasUppercase =>
+      RegExp(r'[A-Z]').hasMatch(passwordController.text);
 
-  bool get hasNumber => RegExp(r'[0-9]').hasMatch(passwordController.text);
+  bool get hasLowercase =>
+      RegExp(r'[a-z]').hasMatch(passwordController.text);
+
+  bool get hasNumber =>
+      RegExp(r'[0-9]').hasMatch(passwordController.text);
+
+  bool get isValidPassword =>
+      hasMinimumLength &&
+          hasUppercase &&
+          hasLowercase &&
+          hasNumber;
 
   String? get passwordError {
     final value = passwordController.text;
@@ -167,7 +178,7 @@ class RegisterViewModel extends ChangeNotifier {
       return 'Ingresa una contraseña';
     }
 
-    if (!MockAuthService.isValidPassword(value)) {
+    if (!isValidPassword) {
       return 'La contraseña no cumple los requisitos';
     }
 
@@ -188,6 +199,10 @@ class RegisterViewModel extends ChangeNotifier {
     return null;
   }
 
+  // ==========================================
+  // VALIDACIÓN GENERAL DEL FORMULARIO
+  // ==========================================
+
   bool get isFormValid {
     return fullNameError == null &&
         usernameError == null &&
@@ -198,44 +213,145 @@ class RegisterViewModel extends ChangeNotifier {
         confirmPasswordError == null;
   }
 
-  bool registerNewUser() {
+  // ==========================================
+  // REGISTRO CON SUPABASE
+  // ==========================================
+
+  Future<bool> registerNewUser() async {
+    if (isLoading) {
+      return false;
+    }
+
     if (!isFormValid) {
-      registrationError = 'Revisa los campos antes de continuar';
+      registrationError =
+      'Revisa los campos antes de continuar';
       notifyListeners();
       return false;
     }
 
-    final parts = fullNameController.text.trim().split(RegExp(r'\s+'));
-
-    final firstName = parts.first;
-    final lastName = parts.sublist(1).join(' ');
-
-    final user = UserModel(
-      id: 'user-${DateTime.now().microsecondsSinceEpoch}',
-      username: usernameController.text.trim().toLowerCase(),
-      firstName: firstName,
-      lastName: lastName,
-      email: emailController.text.trim(),
-      phone: phoneController.text.trim(),
-      identification: identificationController.text.trim(),
-    );
-
-    final success = MockAuthService.registerUser(
-      user: user,
-      password: passwordController.text,
-    );
-
-    if (!success) {
-      registrationError = 'No se pudo registrar. Revisa si el usuario, correo o cédula ya existen';
-      notifyListeners();
-      return false;
-    }
-
+    isLoading = true;
     registrationError = null;
     notifyListeners();
 
-    return true;
+    try {
+      final username =
+      usernameController.text.trim().toLowerCase();
+
+      final email =
+      emailController.text.trim().toLowerCase();
+
+      final identification =
+      identificationController.text.trim();
+
+      final phone =
+      phoneController.text.trim();
+
+      final password =
+          passwordController.text;
+
+      final parts = fullNameController.text
+          .trim()
+          .split(RegExp(r'\s+'));
+
+      final firstName = parts.first;
+      final lastName = parts.sublist(1).join(' ');
+
+      // Supabase Auth administra la contraseña.
+      // Los demás datos se envían como metadatos.
+      //
+      // El trigger handle_new_user() insertará
+      // estos datos en public.profiles.
+
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'username': username,
+          'first_name': firstName,
+          'last_name': lastName,
+          'phone': phone,
+          'identification': identification,
+        },
+      );
+
+      if (response.user == null) {
+        registrationError =
+        'No se pudo completar el registro';
+        return false;
+      }
+
+      registrationError = null;
+      return true;
+    } on AuthException catch (error) {
+      registrationError =
+          _getAuthErrorMessage(error);
+      return false;
+    } on PostgrestException catch (_) {
+      registrationError =
+      'No se pudo guardar el perfil. '
+          'Verifica que el nombre de usuario, '
+          'correo o cédula no estén registrados.';
+      return false;
+    } catch (_) {
+      registrationError =
+      'Ocurrió un error al registrar la cuenta. '
+          'Inténtalo nuevamente.';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
+
+  // ==========================================
+  // MENSAJES DE ERROR DE SUPABASE
+  // ==========================================
+
+  String _getAuthErrorMessage(AuthException error) {
+    final message = error.message.toLowerCase();
+
+    if (message.contains('already registered') ||
+        message.contains('already exists') ||
+        message.contains('user already registered')) {
+      return 'Este correo electrónico ya está registrado';
+    }
+
+    if (message.contains('duplicate') ||
+        message.contains('unique constraint')) {
+      return 'El nombre de usuario, correo o cédula '
+          'ya se encuentra registrado';
+    }
+
+    if (message.contains('password')) {
+      return 'La contraseña no cumple los requisitos '
+          'de seguridad';
+    }
+
+    if (message.contains('invalid email') ||
+        message.contains('email address is invalid')) {
+      return 'El correo electrónico no es válido';
+    }
+
+    if (message.contains('email rate limit') ||
+        message.contains('rate limit') ||
+        message.contains('too many requests')) {
+      return 'Demasiados intentos. '
+          'Espera unos minutos e inténtalo nuevamente';
+    }
+
+    if (message.contains('database error')) {
+      return 'No se pudo crear el perfil. '
+          'Comprueba que el usuario, correo y cédula '
+          'no estén registrados.';
+    }
+
+    return 'No se pudo completar el registro: '
+        '${error.message}';
+  }
+
+  // ==========================================
+  // LIBERAR RECURSOS
+  // ==========================================
 
   @override
   void dispose() {

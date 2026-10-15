@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
-import '../mock/mock_users.dart';
+
 import '../model/account_model.dart';
 import '../model/transaction_model.dart';
-import '../model/user_model.dart';
+
 import '../service/account_service.dart';
-import '../service/mock_auth_service.dart';
 import '../viewModel/dashboard_view_model.dart';
+
 import '../widget/account_card.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import '../widget/dashboard_header.dart';
@@ -30,8 +31,11 @@ class _DashboardViewState extends State<DashboardView> {
   String? _selectedAccountId;
   bool _showBalance = true;
 
-  UserModel get _currentUser =>
-      MockAuthService.currentUser ?? MockUsers.currentUser;
+  // ==========================================
+  // USUARIO AUTENTICADO
+  // ==========================================
+
+  String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
 
   @override
   void initState() {
@@ -39,7 +43,17 @@ class _DashboardViewState extends State<DashboardView> {
 
     _viewModel = DashboardViewModel(AccountService());
 
-    _viewModel.loadDashboard(_currentUser.id);
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    final userId = _currentUserId;
+
+    if (userId == null) {
+      return;
+    }
+
+    await _viewModel.loadDashboard(userId);
   }
 
   @override
@@ -48,7 +62,10 @@ class _DashboardViewState extends State<DashboardView> {
     super.dispose();
   }
 
-  // Obtener la cuenta seleccionada.
+  // ==========================================
+  // CUENTA SELECCIONADA
+  // ==========================================
+
   AccountModel? _getSelectedAccount() {
     if (_viewModel.accounts.isEmpty) {
       return null;
@@ -63,21 +80,26 @@ class _DashboardViewState extends State<DashboardView> {
     return _viewModel.accounts.first;
   }
 
-  // Seleccionar una cuenta.
   void _selectAccount(String accountId) {
     setState(() {
       _selectedAccountId = accountId;
     });
   }
 
-  // Mostrar u ocultar saldos y números de cuenta.
+  // ==========================================
+  // VISIBILIDAD DE SALDOS
+  // ==========================================
+
   void _toggleBalanceVisibility() {
     setState(() {
       _showBalance = !_showBalance;
     });
   }
 
-  // Buscar una cuenta por su ID.
+  // ==========================================
+  // BUSCAR CUENTA POR ID
+  // ==========================================
+
   AccountModel? _getAccountById(String accountId) {
     for (final account in _viewModel.accounts) {
       if (account.id == accountId) {
@@ -88,7 +110,10 @@ class _DashboardViewState extends State<DashboardView> {
     return null;
   }
 
-  // Cambiar de Inicio a la pestaña Movimientos.
+  // ==========================================
+  // ABRIR MOVIMIENTOS
+  // ==========================================
+
   void _openMovements() {
     Navigator.pushReplacement(
       context,
@@ -101,7 +126,10 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  // Abrir el detalle de una transacción.
+  // ==========================================
+  // DETALLE DE TRANSACCIÓN
+  // ==========================================
+
   void _openTransactionDetail(TransactionModel transaction) {
     final transactionAccount = _getAccountById(transaction.accountId);
 
@@ -116,11 +144,19 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // ==========================================
+  // FUNCIONALIDADES PRÓXIMAS
+  // ==========================================
+
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$feature estará disponible próximamente')),
     );
   }
+
+  // ==========================================
+  // PANTALLA
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -130,24 +166,20 @@ class _DashboardViewState extends State<DashboardView> {
       bottomNavigationBar: DashboardBottomNav(
         selectedIndex: 0,
         onItemSelected: (index) {
-          // Inicio
           if (index == 0) {
             return;
           }
 
-          // Movimientos
           if (index == 1) {
             _openMovements();
             return;
           }
 
-          // Pagos
           if (index == 2) {
             _showComingSoon('Pagos');
             return;
           }
 
-          // Perfil
           if (index == 3) {
             Navigator.pushNamed(context, AppRoutes.profile);
             return;
@@ -159,18 +191,77 @@ class _DashboardViewState extends State<DashboardView> {
         child: ListenableBuilder(
           listenable: _viewModel,
           builder: (context, child) {
+            // ==========================================
+            // CARGANDO
+            // ==========================================
+
             if (_viewModel.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
+
+            // ==========================================
+            // SESIÓN NO DISPONIBLE
+            // ==========================================
+
+            if (_currentUserId == null) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Debes iniciar sesión para continuar'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.login,
+                          (route) => false,
+                        );
+                      },
+                      child: const Text('Ir al inicio de sesión'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // ==========================================
+            // ERROR DE CARGA
+            // ==========================================
 
             if (_viewModel.errorMessage != null) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(
-                    _viewModel.errorMessage!,
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _viewModel.errorMessage!,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadDashboard,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
                   ),
+                ),
+              );
+            }
+
+            // ==========================================
+            // PERFIL REAL
+            // ==========================================
+
+            final currentUser = _viewModel.user;
+
+            if (currentUser == null) {
+              return Center(
+                child: ElevatedButton(
+                  onPressed: _loadDashboard,
+                  child: const Text('Cargar Dashboard'),
                 ),
               );
             }
@@ -178,15 +269,16 @@ class _DashboardViewState extends State<DashboardView> {
             final selectedAccount = _getSelectedAccount();
 
             return RefreshIndicator(
-              onRefresh: () {
-                return _viewModel.loadDashboard(_currentUser.id);
-              },
+              onRefresh: _loadDashboard,
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  // ==========================================
                   // ENCABEZADO
+                  // ==========================================
+
                   DashboardHeader(
-                    user: _currentUser,
+                    user: currentUser,
                     totalBalance: _viewModel.totalBalance,
                     accountCount: _viewModel.accounts.length,
                     showBalance: _showBalance,
@@ -195,7 +287,9 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 24),
 
+                  // ==========================================
                   // MIS CUENTAS
+                  // ==========================================
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
@@ -225,11 +319,24 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 12),
 
+                  // ==========================================
                   // TARJETAS BANCARIAS
+                  // ==========================================
                   if (_viewModel.accounts.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('No tienes cuentas registradas'),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No tienes cuentas registradas',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
                     )
                   else
                     SizedBox(
@@ -268,7 +375,9 @@ class _DashboardViewState extends State<DashboardView> {
 
                   const SizedBox(height: 24),
 
+                  // ==========================================
                   // ÚLTIMOS MOVIMIENTOS
+                  // ==========================================
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(

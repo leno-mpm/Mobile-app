@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -20,13 +21,26 @@ class _RegisterViewState extends State<RegisterView> {
     super.dispose();
   }
 
-  void _onContinuePressed() {
-    final username = _viewModel.usernameController.text.trim().toLowerCase();
+  // ==========================================
+  // REGISTRAR USUARIO EN SUPABASE
+  // ==========================================
 
-    final success = _viewModel.registerNewUser();
+  Future<void> _onContinuePressed() async {
+    if (_viewModel.isLoading) return;
+
+    FocusScope.of(context).unfocus();
+
+    final username =
+    _viewModel.usernameController.text.trim().toLowerCase();
+
+    final success = await _viewModel.registerNewUser();
+
+    if (!mounted) return;
 
     if (!success) return;
 
+    // Registro completado.
+    // Regresamos al Login con el nombre de usuario.
     Navigator.pop(context, username);
   }
 
@@ -41,8 +55,13 @@ class _RegisterViewState extends State<RegisterView> {
             backgroundColor: AppColors.background,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.text),
-              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.arrow_back,
+                color: AppColors.text,
+              ),
+              onPressed: _viewModel.isLoading
+                  ? null
+                  : () => Navigator.pop(context),
             ),
             title: const Text(
               'Crea tu cuenta',
@@ -55,7 +74,10 @@ class _RegisterViewState extends State<RegisterView> {
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -69,6 +91,10 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 24),
 
+                  // ==========================================
+                  // NOMBRES Y APELLIDOS
+                  // ==========================================
+
                   _buildField(
                     label: 'Nombres y apellidos',
                     hint: 'Ej: María González',
@@ -81,6 +107,10 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 18),
 
+                  // ==========================================
+                  // NOMBRE DE USUARIO
+                  // ==========================================
+
                   _buildField(
                     label: 'Nombre de usuario',
                     hint: 'Ej: maria.gonzalez',
@@ -90,10 +120,14 @@ class _RegisterViewState extends State<RegisterView> {
                     errorText: _viewModel.usernameError,
                     onChanged: _viewModel.onUsernameChanged,
                     helperText:
-                        'De 4 a 20 caracteres. Debe comenzar con una letra.',
+                    'De 4 a 20 caracteres. Debe comenzar con una letra.',
                   ),
 
                   const SizedBox(height: 18),
+
+                  // ==========================================
+                  // CÉDULA
+                  // ==========================================
 
                   _buildField(
                     label: 'Cédula',
@@ -112,6 +146,10 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 18),
 
+                  // ==========================================
+                  // CORREO ELECTRÓNICO
+                  // ==========================================
+
                   _buildField(
                     label: 'Correo',
                     hint: 'ejemplo@gmail.com',
@@ -124,6 +162,10 @@ class _RegisterViewState extends State<RegisterView> {
                   ),
 
                   const SizedBox(height: 18),
+
+                  // ==========================================
+                  // CELULAR
+                  // ==========================================
 
                   _buildField(
                     label: 'Celular',
@@ -157,6 +199,10 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 18),
 
+                  // ==========================================
+                  // CONTRASEÑA
+                  // ==========================================
+
                   _buildField(
                     label: 'Contraseña',
                     hint: 'Crea tu contraseña',
@@ -174,9 +220,15 @@ class _RegisterViewState extends State<RegisterView> {
                             : Icons.visibility_outlined,
                         color: AppColors.secondary,
                       ),
-                      onPressed: _viewModel.togglePasswordVisibility,
+                      onPressed: _viewModel.isLoading
+                          ? null
+                          : _viewModel.togglePasswordVisibility,
                     ),
                   ),
+
+                  // ==========================================
+                  // REQUISITOS DE CONTRASEÑA
+                  // ==========================================
 
                   if (_viewModel.passwordTouched) ...[
                     const SizedBox(height: 12),
@@ -186,10 +238,13 @@ class _RegisterViewState extends State<RegisterView> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                        ),
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Tu contraseña debe contener:',
@@ -228,15 +283,24 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 18),
 
+                  // ==========================================
+                  // CONFIRMAR CONTRASEÑA
+                  // ==========================================
+
                   _buildField(
                     label: 'Confirmar contraseña',
                     hint: 'Repite tu contraseña',
                     icon: Icons.lock_reset_outlined,
-                    controller: _viewModel.confirmPasswordController,
-                    touched: _viewModel.confirmPasswordTouched,
-                    errorText: _viewModel.confirmPasswordError,
-                    onChanged: _viewModel.onConfirmPasswordChanged,
-                    obscureText: _viewModel.obscureConfirmPassword,
+                    controller:
+                    _viewModel.confirmPasswordController,
+                    touched:
+                    _viewModel.confirmPasswordTouched,
+                    errorText:
+                    _viewModel.confirmPasswordError,
+                    onChanged:
+                    _viewModel.onConfirmPasswordChanged,
+                    obscureText:
+                    _viewModel.obscureConfirmPassword,
                     showValidationIcon: false,
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -245,42 +309,99 @@ class _RegisterViewState extends State<RegisterView> {
                             : Icons.visibility_outlined,
                         color: AppColors.secondary,
                       ),
-                      onPressed: _viewModel.toggleConfirmPasswordVisibility,
+                      onPressed: _viewModel.isLoading
+                          ? null
+                          : _viewModel
+                          .toggleConfirmPasswordVisibility,
                     ),
                   ),
+
+                  // ==========================================
+                  // ERROR DE REGISTRO
+                  // ==========================================
 
                   if (_viewModel.registrationError != null) ...[
                     const SizedBox(height: 18),
 
-                    Text(
-                      _viewModel.registrationError!,
-                      style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(
+                          alpha: 0.08,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.error.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+
+                          const SizedBox(width: 10),
+
+                          Expanded(
+                            child: Text(
+                              _viewModel.registrationError!,
+                              style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
 
                   const SizedBox(height: 32),
 
+                  // ==========================================
+                  // BOTÓN CREAR CUENTA
+                  // ==========================================
+
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledBackgroundColor:
+                        Colors.grey.shade300,
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: AppColors.textSecondary,
+                        disabledForegroundColor:
+                        AppColors.textSecondary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
-                      onPressed: _viewModel.isFormValid
+                      onPressed:
+                      _viewModel.isFormValid &&
+                          !_viewModel.isLoading
                           ? _onContinuePressed
                           : null,
-                      child: const Text(
+                      child: _viewModel.isLoading
+                          ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor:
+                          AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
+                        ),
+                      )
+                          : const Text(
                         'Crear cuenta',
                         style: TextStyle(
                           fontSize: 15,
@@ -292,8 +413,13 @@ class _RegisterViewState extends State<RegisterView> {
 
                   const SizedBox(height: 20),
 
+                  // ==========================================
+                  // REGRESAR AL LOGIN
+                  // ==========================================
+
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment:
+                    MainAxisAlignment.center,
                     children: [
                       const Text(
                         '¿Ya tienes cuenta? ',
@@ -302,8 +428,11 @@ class _RegisterViewState extends State<RegisterView> {
                           fontSize: 15,
                         ),
                       ),
+
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: _viewModel.isLoading
+                            ? null
+                            : () => Navigator.pop(context),
                         child: const Text(
                           'Inicia sesión',
                           style: TextStyle(
@@ -326,14 +455,25 @@ class _RegisterViewState extends State<RegisterView> {
     );
   }
 
-  Widget _passwordRequirement(String label, bool fulfilled) {
+  // ==========================================
+  // INDICADOR DE REQUISITO DE CONTRASEÑA
+  // ==========================================
+
+  Widget _passwordRequirement(
+      String label,
+      bool fulfilled,
+      ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
         children: [
           Icon(
-            fulfilled ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: fulfilled ? AppColors.secondary : AppColors.textSecondary,
+            fulfilled
+                ? Icons.check_circle
+                : Icons.radio_button_unchecked,
+            color: fulfilled
+                ? AppColors.secondary
+                : AppColors.textSecondary,
             size: 18,
           ),
 
@@ -347,7 +487,9 @@ class _RegisterViewState extends State<RegisterView> {
                     ? AppColors.secondary
                     : AppColors.textSecondary,
                 fontSize: 13,
-                fontWeight: fulfilled ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: fulfilled
+                    ? FontWeight.w600
+                    : FontWeight.normal,
               ),
             ),
           ),
@@ -355,6 +497,10 @@ class _RegisterViewState extends State<RegisterView> {
       ),
     );
   }
+
+  // ==========================================
+  // CAMPO REUTILIZABLE
+  // ==========================================
 
   Widget _buildField({
     required String label,
@@ -376,8 +522,13 @@ class _RegisterViewState extends State<RegisterView> {
 
     Color borderColor = Colors.grey.shade400;
 
-    if (isValid) borderColor = AppColors.secondary;
-    if (hasError) borderColor = AppColors.error;
+    if (isValid) {
+      borderColor = AppColors.secondary;
+    }
+
+    if (hasError) {
+      borderColor = AppColors.error;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,29 +551,37 @@ class _RegisterViewState extends State<RegisterView> {
           inputFormatters: inputFormatters,
           onChanged: onChanged,
           autocorrect: false,
-          style: const TextStyle(fontSize: 15, color: AppColors.text),
+          enabled: !_viewModel.isLoading,
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.text,
+          ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: AppColors.textSecondary.withValues(alpha: 0.6),
+              color: AppColors.textSecondary.withValues(
+                alpha: 0.6,
+              ),
             ),
             filled: true,
             fillColor: Colors.white,
-            prefixIcon: Icon(icon, color: AppColors.textSecondary),
-            suffixIcon:
-                suffixIcon ??
+            prefixIcon: Icon(
+              icon,
+              color: AppColors.textSecondary,
+            ),
+            suffixIcon: suffixIcon ??
                 (showValidationIcon
                     ? (isValid
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: AppColors.secondary,
-                            )
-                          : (hasError
-                                ? const Icon(
-                                    Icons.error_outline,
-                                    color: AppColors.error,
-                                  )
-                                : null))
+                    ? const Icon(
+                  Icons.check_circle,
+                  color: AppColors.secondary,
+                )
+                    : (hasError
+                    ? const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                )
+                    : null))
                     : null),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -440,7 +599,9 @@ class _RegisterViewState extends State<RegisterView> {
               borderSide: BorderSide(
                 color: hasError
                     ? AppColors.error
-                    : (isValid ? AppColors.secondary : AppColors.accent),
+                    : (isValid
+                    ? AppColors.secondary
+                    : AppColors.accent),
                 width: 2,
               ),
             ),
@@ -449,6 +610,7 @@ class _RegisterViewState extends State<RegisterView> {
 
         if (helperText != null) ...[
           const SizedBox(height: 6),
+
           Text(
             helperText,
             style: const TextStyle(
@@ -460,6 +622,7 @@ class _RegisterViewState extends State<RegisterView> {
 
         if (hasError) ...[
           const SizedBox(height: 6),
+
           Text(
             errorText,
             style: const TextStyle(

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../core/routes/app_routes.dart';
@@ -20,59 +21,45 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  // =====================================================
-  // LOGIN CON USUARIO Y CONTRASEÑA
-  // =====================================================
+  // ==========================================
+  // LOGIN CON SUPABASE
+  // ==========================================
 
-  void _onLoginPressed() {
-    final success = _viewModel.login();
+  Future<void> _onLoginPressed() async {
+    if (_viewModel.isLoading) return;
 
-    if (success) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.dashboard,
-        (route) => false,
-      );
-    }
+    FocusScope.of(context).unfocus();
+
+    final success = await _viewModel.login();
+
+    if (!mounted) return;
+
+    if (!success) return;
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.dashboard,
+          (route) => false,
+    );
   }
 
-  // =====================================================
-  // LOGIN CON HUELLA SIMULADA
-  // =====================================================
-
-  void _onFingerprintPressed() {
-    if (!_viewModel.canUseFingerprint) {
-      return;
-    }
-
-    final success = _viewModel.loginWithFingerprint();
-
-    if (success) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.dashboard,
-        (route) => false,
-      );
-    }
-  }
-
-  // =====================================================
-  // NAVEGAR AL REGISTRO Y RECIBIR EL NUEVO USUARIO
-  // =====================================================
+  // ==========================================
+  // REGISTRO DE NUEVOS USUARIOS
+  // ==========================================
 
   Future<void> _onRegisterPressed() async {
-    debugPrint('SE PRESIONÓ CREAR CUENTA');
+    if (_viewModel.isLoading) return;
 
     final result = await Navigator.pushNamed(
       context,
       AppRoutes.register,
     );
 
-    final username = result as String?;
-
     if (!mounted) return;
 
-    if (username != null) {
+    if (result is String) {
+      final username = result;
+
       _viewModel.userController.text = username;
       _viewModel.passwordController.clear();
       _viewModel.clearError();
@@ -81,16 +68,18 @@ class _LoginViewState extends State<LoginView> {
         SnackBar(
           backgroundColor: AppColors.secondary,
           content: Text(
-            '¡Cuenta creada! Inicia sesión con $username',
+            '¡Registro completado! '
+                'Revisa tu correo si necesitas confirmar tu cuenta. '
+                'Luego inicia sesión con $username.',
           ),
         ),
       );
     }
   }
 
-  // =====================================================
+  // ==========================================
   // DECORACIÓN DE LOS CAMPOS
-  // =====================================================
+  // ==========================================
 
   InputDecoration _inputDecoration({
     required String hint,
@@ -100,48 +89,64 @@ class _LoginViewState extends State<LoginView> {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(
-        color: AppColors.textSecondary.withValues(alpha: 0.6),
+        color: AppColors.textSecondary.withValues(
+          alpha: 0.6,
+        ),
       ),
       filled: true,
       fillColor: Colors.white,
-      prefixIcon: Icon(prefixIcon, color: AppColors.textSecondary),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: AppColors.textSecondary,
+      ),
       suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 16,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade400, width: 1.2),
+        borderSide: BorderSide(
+          color: Colors.grey.shade400,
+          width: 1.2,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.accent, width: 2),
+        borderSide: const BorderSide(
+          color: AppColors.accent,
+          width: 2,
+        ),
       ),
     );
   }
 
-  // =====================================================
+  // ==========================================
   // INTERFAZ
-  // =====================================================
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
-        final fingerprintEnabled = _viewModel.canUseFingerprint;
-
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 36,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 16),
 
-                  // =====================================================
+                  // ==========================================
                   // LOGO
-                  // =====================================================
+                  // ==========================================
+
                   Center(
                     child: Container(
                       width: 84,
@@ -184,9 +189,10 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 36),
 
-                  // =====================================================
+                  // ==========================================
                   // NOMBRE DE USUARIO
-                  // =====================================================
+                  // ==========================================
+
                   const Text(
                     'Nombre de usuario',
                     style: TextStyle(
@@ -200,13 +206,17 @@ class _LoginViewState extends State<LoginView> {
 
                   TextField(
                     controller: _viewModel.userController,
+                    enabled: !_viewModel.isLoading,
                     autocorrect: false,
                     textCapitalization: TextCapitalization.none,
                     textInputAction: TextInputAction.next,
                     onChanged: (_) {
                       _viewModel.clearError();
                     },
-                    style: const TextStyle(fontSize: 15, color: AppColors.text),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.text,
+                    ),
                     decoration: _inputDecoration(
                       hint: 'Ej: maria.gonzalez',
                       prefixIcon: Icons.person_outline,
@@ -215,9 +225,10 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 20),
 
-                  // =====================================================
+                  // ==========================================
                   // CONTRASEÑA
-                  // =====================================================
+                  // ==========================================
+
                   const Text(
                     'Contraseña',
                     style: TextStyle(
@@ -231,13 +242,21 @@ class _LoginViewState extends State<LoginView> {
 
                   TextField(
                     controller: _viewModel.passwordController,
+                    enabled: !_viewModel.isLoading,
                     obscureText: _viewModel.obscurePassword,
                     textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _onLoginPressed(),
+                    onSubmitted: (_) {
+                      if (!_viewModel.isLoading) {
+                        _onLoginPressed();
+                      }
+                    },
                     onChanged: (_) {
                       _viewModel.clearError();
                     },
-                    style: const TextStyle(fontSize: 15, color: AppColors.text),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.text,
+                    ),
                     decoration: _inputDecoration(
                       hint: 'Ingresa tu contraseña',
                       prefixIcon: Icons.lock_outline,
@@ -248,23 +267,30 @@ class _LoginViewState extends State<LoginView> {
                               : Icons.visibility_outlined,
                           color: AppColors.secondary,
                         ),
-                        onPressed: _viewModel.togglePasswordVisibility,
+                        onPressed: _viewModel.isLoading
+                            ? null
+                            : _viewModel.togglePasswordVisibility,
                       ),
                     ),
                   ),
 
-                  // =====================================================
+                  // ==========================================
                   // MENSAJES DE ERROR
-                  // =====================================================
+                  // ==========================================
+
                   if (_viewModel.errorMessage != null) ...[
                     const SizedBox(height: 16),
 
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.1),
+                        color: AppColors.error.withValues(
+                          alpha: 0.1,
+                        ),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.error),
+                        border: Border.all(
+                          color: AppColors.error,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -292,22 +318,42 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
-                  // =====================================================
+                  // ==========================================
                   // BOTÓN INGRESAR
-                  // =====================================================
+                  // ==========================================
+
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
+                        disabledBackgroundColor:
+                        AppColors.primary.withValues(
+                          alpha: 0.65,
+                        ),
                         foregroundColor: Colors.white,
+                        disabledForegroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
-                      onPressed: _onLoginPressed,
-                      child: const Text(
+                      onPressed: _viewModel.isLoading
+                          ? null
+                          : _onLoginPressed,
+                      child: _viewModel.isLoading
+                          ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor:
+                          AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                          : const Text(
                         'Ingresar',
                         style: TextStyle(
                           fontSize: 15,
@@ -319,9 +365,10 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 14),
 
-                  // =====================================================
-                  // BOTÓN INGRESAR CON HUELLA SIMULADA
-                  // =====================================================
+                  // ==========================================
+                  // INGRESO CON HUELLA
+                  // ==========================================
+
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
@@ -329,34 +376,21 @@ class _LoginViewState extends State<LoginView> {
                         foregroundColor: AppColors.primary,
                         disabledForegroundColor: Colors.grey,
                         side: BorderSide(
-                          color: fingerprintEnabled
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
+                          color: Colors.grey.shade300,
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-
-                      // Desactivado cuando el usuario no tiene
-                      // habilitada la huella simulada.
-                      onPressed: fingerprintEnabled
-                          ? _onFingerprintPressed
-                          : null,
-
-                      icon: Icon(
-                        fingerprintEnabled
-                            ? Icons.fingerprint
-                            : Icons.lock_outline,
+                      onPressed: null,
+                      icon: const Icon(
+                        Icons.lock_outline,
                         size: 24,
                       ),
-
-                      label: Text(
-                        fingerprintEnabled
-                            ? 'Ingresar con huella'
-                            : 'Ingreso con huella desactivado',
-                        style: const TextStyle(
+                      label: const Text(
+                        'Ingreso con huella desactivado',
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -366,9 +400,10 @@ class _LoginViewState extends State<LoginView> {
 
                   const SizedBox(height: 28),
 
-                  // =====================================================
+                  // ==========================================
                   // REGISTRO DE NUEVOS USUARIOS
-                  // =====================================================
+                  // ==========================================
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -381,7 +416,9 @@ class _LoginViewState extends State<LoginView> {
                       ),
 
                       GestureDetector(
-                        onTap: _onRegisterPressed,
+                        onTap: _viewModel.isLoading
+                            ? null
+                            : _onRegisterPressed,
                         child: const Text(
                           'Crea tu cuenta',
                           style: TextStyle(
@@ -395,29 +432,6 @@ class _LoginViewState extends State<LoginView> {
                   ),
 
                   const SizedBox(height: 24),
-
-                  // =====================================================
-                  // INFORMACIÓN DEL USUARIO DE PRUEBA
-                  // =====================================================
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Text(
-                      'Usuario de prueba:\n'
-                      'Usuario: maria.gonzalez\n'
-                      'Contraseña: Mint1234\n\n'
-                      'El ingreso con huella es simulado.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

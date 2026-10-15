@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+
+import 'package:flutter/foundation.dart';
 
 import '../model/policy_model.dart';
 import '../service/policy_service.dart';
@@ -23,11 +24,13 @@ class PoliciesViewModel extends ChangeNotifier {
   double get totalInvested {
     return _policies.fold<double>(
       0.0,
-      (total, policy) => total + policy.amount,
+          (total, policy) => total + policy.amount,
     );
   }
 
   Future<void> loadPolicies(String userId) async {
+    if (_isLoading) return;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -35,8 +38,10 @@ class PoliciesViewModel extends ChangeNotifier {
     try {
       _policies = await _policyService.getPoliciesByUser(userId);
     } catch (e) {
-      _errorMessage = 'No se pudieron cargar las pólizas';
       _policies = [];
+      _errorMessage = 'No se pudieron cargar las pólizas';
+
+      debugPrint('Error al cargar pólizas: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

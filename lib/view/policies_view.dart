@@ -1,8 +1,8 @@
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/theme/app_colors.dart';
-import '../mock/mock_users.dart';
-import '../service/mock_auth_service.dart';
 import '../service/policy_service.dart';
 import '../viewModel/policies_view_model.dart';
 import '../widget/policy_card.dart';
@@ -23,9 +23,17 @@ class _PoliciesViewState extends State<PoliciesView> {
 
     _viewModel = PoliciesViewModel(PolicyService());
 
-    final userId = MockAuthService.currentUserId ?? MockUsers.currentUser.id;
+    _loadPolicies();
+  }
 
-    _viewModel.loadPolicies(userId);
+  Future<void> _loadPolicies() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (userId == null) {
+      return;
+    }
+
+    await _viewModel.loadPolicies(userId);
   }
 
   @override
@@ -39,7 +47,7 @@ class _PoliciesViewState extends State<PoliciesView> {
 
     final formatted = parts[0].replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => ',',
+          (match) => ',',
     );
 
     return '\$$formatted.${parts[1]}';
@@ -47,6 +55,36 @@ class _PoliciesViewState extends State<PoliciesView> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          title: const Text('Mis pólizas'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Debes iniciar sesión para consultar tus pólizas.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
 
@@ -75,14 +113,52 @@ class _PoliciesViewState extends State<PoliciesView> {
         child: ListenableBuilder(
           listenable: _viewModel,
           builder: (context, child) {
+            // Estado de carga
             if (_viewModel.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
 
+            // Estado de error
             if (_viewModel.errorMessage != null) {
-              return Center(child: Text(_viewModel.errorMessage!));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.error,
+                        size: 56,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Text(
+                        _viewModel.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      ElevatedButton(
+                        onPressed: _loadPolicies,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
 
+            // Estado vacío
             if (_viewModel.policies.isEmpty) {
               return const Center(
                 child: Padding(
@@ -111,9 +187,11 @@ class _PoliciesViewState extends State<PoliciesView> {
 
                       Text(
                         'Cuando tengas una inversión a plazo '
-                        'fijo, podrás consultar sus detalles aquí.',
+                            'fijo, podrás consultar sus detalles aquí.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -121,84 +199,88 @@ class _PoliciesViewState extends State<PoliciesView> {
               );
             }
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
-              children: [
-                const Text(
-                  'Consulta tus inversiones a plazo fijo.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
+            // Listado de pólizas
+            return RefreshIndicator(
+              onRefresh: _loadPolicies,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+                children: [
+                  const Text(
+                    'Consulta tus inversiones a plazo fijo.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // Resumen de inversiones
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Total invertido',
-                        style: TextStyle(
-                          color: Color(0xFFDCE8F7),
-                          fontSize: 13,
+                  // Resumen de inversiones
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Total invertido',
+                          style: TextStyle(
+                            color: Color(0xFFDCE8F7),
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 10),
 
-                      Text(
-                        _formatMoney(_viewModel.totalInvested),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          _formatMoney(_viewModel.totalInvested),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      Text(
-                        '${_viewModel.policyCount} '
-                        '${_viewModel.policyCount == 1 ? 'póliza' : 'pólizas'} '
-                        'de inversión',
-                        style: const TextStyle(
-                          color: Color(0xFFDCE8F7),
-                          fontSize: 12,
+                        Text(
+                          '${_viewModel.policyCount} '
+                              '${_viewModel.policyCount == 1 ? 'póliza' : 'pólizas'} '
+                              'de inversión',
+                          style: const TextStyle(
+                            color: Color(0xFFDCE8F7),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 26),
+                  const SizedBox(height: 26),
 
-                const Text(
-                  'Tus inversiones',
-                  style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
+                  const Text(
+                    'Tus inversiones',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Listado de pólizas
-                ..._viewModel.policies.map(
-                  (policy) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: PolicyCard(policy: policy),
+                  // Pólizas obtenidas desde Supabase
+                  ..._viewModel.policies.map(
+                        (policy) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: PolicyCard(policy: policy),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
