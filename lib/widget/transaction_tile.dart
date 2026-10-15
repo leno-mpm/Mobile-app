@@ -122,26 +122,26 @@ class TransactionTile extends StatelessWidget {
         '${isIncome ? '+' : '-'}${_formatMoney(transaction.amount)}';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           // Ícono de la categoría
           Container(
-            width: 46,
-            height: 46,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               color: _getIconBackground(),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_getCategoryIcon(), color: _getIconColor(), size: 23),
+            child: Icon(_getCategoryIcon(), color: _getIconColor(), size: 19),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
           // Información del movimiento
           Expanded(
@@ -154,12 +154,12 @@ class TransactionTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.text,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
 
                 Text(
                   '${transaction.category} · ${_formatDate()}',
@@ -167,7 +167,7 @@ class TransactionTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -181,7 +181,7 @@ class TransactionTile extends StatelessWidget {
             formattedAmount,
             style: TextStyle(
               color: isIncome ? AppColors.secondary : AppColors.text,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),

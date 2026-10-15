@@ -31,10 +31,10 @@ class BalanceSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 14, 10, 14),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -53,30 +53,30 @@ class BalanceSummaryCard extends StatelessWidget {
                   'Saldo total disponible',
                   style: TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
 
                 Text(
                   showBalance ? _formatMoney(totalBalance) : '••••••••',
                   style: const TextStyle(
                     color: AppColors.primary,
-                    fontSize: 26,
+                    fontSize: 21,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
 
                 Text(
                   'Distribuido en $accountCount '
                   '${accountCount == 1 ? 'cuenta' : 'cuentas'}',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -86,12 +86,15 @@ class BalanceSummaryCard extends StatelessWidget {
           IconButton(
             tooltip: showBalance ? 'Ocultar saldos' : 'Mostrar saldos',
             onPressed: onToggleBalance,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            visualDensity: VisualDensity.compact,
             icon: Icon(
               showBalance
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined,
               color: AppColors.primary,
-              size: 22,
+              size: 19,
             ),
           ),
         ],
