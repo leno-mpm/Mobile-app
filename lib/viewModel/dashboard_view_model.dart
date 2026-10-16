@@ -3,18 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../model/account_model.dart';
+import '../model/policy_model.dart';
 import '../model/transaction_model.dart';
 import '../model/user_model.dart';
 import '../service/account_service.dart';
+import '../service/policy_service.dart';
 
 class DashboardViewModel extends ChangeNotifier {
   final AccountService _accountService;
+  final PolicyService _policyService;
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  DashboardViewModel(this._accountService);
+  DashboardViewModel(this._accountService, this._policyService);
 
   List<AccountModel> _accounts = [];
   List<TransactionModel> _transactions = [];
+  List<PolicyModel> _policies = [];
   UserModel? _user;
   String? _avatarUrl;
 
@@ -26,6 +30,9 @@ class DashboardViewModel extends ChangeNotifier {
 
   List<TransactionModel> get transactions =>
       List.unmodifiable(_transactions);
+
+  List<PolicyModel> get policies =>
+      List.unmodifiable(_policies);
 
   UserModel? get user => _user;
 
@@ -94,6 +101,9 @@ class DashboardViewModel extends ChangeNotifier {
       _accounts =
       await _accountService.getAccountsByUser(userId);
 
+      // Obtener las pólizas de inversión del usuario.
+      _policies = await _policyService.getPoliciesByUser(userId);
+
       // Obtener las transacciones de cada cuenta.
       final List<TransactionModel> allTransactions = [];
 
@@ -114,6 +124,7 @@ class DashboardViewModel extends ChangeNotifier {
       _user = null;
       _accounts = [];
       _transactions = [];
+      _policies = [];
       _avatarUrl = null;
 
       _errorMessage = 'No se pudo cargar el Dashboard';
