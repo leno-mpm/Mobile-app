@@ -9,6 +9,7 @@ import 'view/login_view.dart';
 import 'view/register_view.dart';
 import 'view/dashboard_view.dart';
 import 'view/profile_view.dart';
+import 'view/splash_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,7 @@ class MintApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
 
-      home: const AuthGate(),
+      home: const SplashView(),
 
       routes: {
         AppRoutes.login: (context) => const LoginView(),

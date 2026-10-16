@@ -8,11 +8,14 @@ import '../model/account_model.dart';
 import '../model/transaction_model.dart';
 
 import '../service/account_service.dart';
+import '../service/policy_service.dart';
 import '../viewModel/dashboard_view_model.dart';
 
 import '../widget/account_card.dart';
+import '../widget/balance_summary_card.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import '../widget/dashboard_header.dart';
+import '../widget/policy_account_card.dart';
 import '../widget/transaction_tile.dart';
 
 import 'movements_view.dart';
@@ -41,7 +44,7 @@ class _DashboardViewState extends State<DashboardView> {
   void initState() {
     super.initState();
 
-    _viewModel = DashboardViewModel(AccountService());
+    _viewModel = DashboardViewModel(AccountService(), PolicyService());
 
     _loadDashboard();
   }
@@ -279,10 +282,7 @@ class _DashboardViewState extends State<DashboardView> {
 
                   DashboardHeader(
                     user: currentUser,
-                    totalBalance: _viewModel.totalBalance,
-                    accountCount: _viewModel.accounts.length,
-                    showBalance: _showBalance,
-                    onToggleBalance: _toggleBalanceVisibility,
+                    avatarUrl: _viewModel.avatarUrl,
                   ),
 
                   const SizedBox(height: 24),
@@ -320,9 +320,10 @@ class _DashboardViewState extends State<DashboardView> {
                   const SizedBox(height: 12),
 
                   // ==========================================
-                  // TARJETAS BANCARIAS
+                  // TARJETAS BANCARIAS Y PÓLIZAS
                   // ==========================================
-                  if (_viewModel.accounts.isEmpty)
+                  if (_viewModel.accounts.isEmpty &&
+                      _viewModel.policies.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: 16,
@@ -348,30 +349,64 @@ class _DashboardViewState extends State<DashboardView> {
                           horizontal: 16,
                           vertical: 6,
                         ),
-                        itemCount: _viewModel.accounts.length,
+                        itemCount: _viewModel.accounts.length +
+                            _viewModel.policies.length,
                         separatorBuilder: (context, index) {
                           return const SizedBox(width: 14);
                         },
                         itemBuilder: (context, index) {
-                          final account = _viewModel.accounts[index];
+                          if (index < _viewModel.accounts.length) {
+                            final account = _viewModel.accounts[index];
 
-                          final isSelected = selectedAccount?.id == account.id;
+                            final isSelected =
+                                selectedAccount?.id == account.id;
+
+                            return SizedBox(
+                              width: 315,
+                              child: AccountCard(
+                                key: ValueKey(account.id),
+                                account: account,
+                                isSelected: isSelected,
+                                showBalance: _showBalance,
+                                userEmail: currentUser.email,
+                                userIdentification:
+                                    currentUser.identification,
+                                onTap: () {
+                                  _selectAccount(account.id);
+                                },
+                              ),
+                            );
+                          }
+
+                          final policy = _viewModel.policies[
+                              index - _viewModel.accounts.length];
 
                           return SizedBox(
                             width: 315,
-                            child: AccountCard(
-                              key: ValueKey(account.id),
-                              account: account,
-                              isSelected: isSelected,
+                            child: PolicyAccountCard(
+                              key: ValueKey(policy.id),
+                              policy: policy,
                               showBalance: _showBalance,
-                              onTap: () {
-                                _selectAccount(account.id);
-                              },
                             ),
                           );
                         },
                       ),
                     ),
+
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // SALDO TOTAL
+                  // ==========================================
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: BalanceSummaryCard(
+                      totalBalance: _viewModel.totalBalance,
+                      accountCount: _viewModel.accounts.length,
+                      showBalance: _showBalance,
+                      onToggleBalance: _toggleBalanceVisibility,
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 

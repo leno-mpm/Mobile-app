@@ -18,15 +18,15 @@ class SecurityViewModel extends ChangeNotifier {
   // ==========================================
 
   // La autenticación biométrica real todavía
-  // no está implementada.
-  bool get fingerprintEnabled => false;
+  // no está implementada: el switch solo
+  // simula el estado, no activa huella real.
+  bool _fingerprintEnabled = false;
 
-  // Se conserva temporalmente este método
-  // para mantener compatibilidad con la vista.
+  bool get fingerprintEnabled => _fingerprintEnabled;
+
   void setFingerprintEnabled(bool enabled) {
-    debugPrint(
-      'La autenticación biométrica todavía no está disponible.',
-    );
+    _fingerprintEnabled = enabled;
+    notifyListeners();
   }
 
   // ==========================================

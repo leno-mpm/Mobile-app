@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/theme/app_colors.dart';
 import '../model/account_model.dart';
@@ -10,6 +11,8 @@ class AccountCard extends StatefulWidget {
   final bool isSelected;
   final bool showBalance;
   final VoidCallback onTap;
+  final String userEmail;
+  final String userIdentification;
 
   const AccountCard({
     super.key,
@@ -17,6 +20,8 @@ class AccountCard extends StatefulWidget {
     required this.isSelected,
     required this.showBalance,
     required this.onTap,
+    required this.userEmail,
+    required this.userIdentification,
   });
 
   @override
@@ -89,6 +94,34 @@ class _AccountCardState extends State<AccountCard>
     return widget.showBalance
         ? accountNumber
         : _maskAccountNumber(accountNumber);
+  }
+
+  Future<void> _shareAccountData() async {
+    final message = 'Banco Mint\n'
+        'Número de cuenta: ${widget.account.accountNumber}\n'
+        'Tipo de cuenta: ${widget.account.accountType}\n'
+        'Correo: ${widget.userEmail}\n'
+        'Identificación: ${widget.userIdentification}';
+
+    final box = context.findRenderObject() as RenderBox?;
+    final sharePositionOrigin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: message,
+          sharePositionOrigin: sharePositionOrigin,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el menú de compartir')),
+      );
+    }
   }
 
   @override
@@ -226,19 +259,41 @@ class _AccountCardState extends State<AccountCard>
                   const SizedBox(height: 20),
 
                   // Número de cuenta
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _getDisplayedAccountNumber(),
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 22,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.w600,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _getDisplayedAccountNumber(),
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 22,
+                              letterSpacing: 2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+
+                      IconButton(
+                        onPressed: _shareAccountData,
+                        tooltip: 'Compartir datos de la cuenta',
+                        icon: Icon(
+                          Icons.share_rounded,
+                          color: textColor,
+                          size: 18,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 12),

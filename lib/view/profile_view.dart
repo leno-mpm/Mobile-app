@@ -26,7 +26,6 @@ class _ProfileViewState extends State<ProfileView> {
   late final SecurityViewModel _securityViewModel;
 
   final ImagePicker _imagePicker = ImagePicker();
-  File? _profileImage;
 
   @override
   void initState() {
@@ -62,7 +61,10 @@ class _ProfileViewState extends State<ProfileView> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+
   Future<void> _changeProfilePhoto() async {
+    if (_viewModel.isUploadingPhoto) return;
+
     try {
       final selectedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -72,16 +74,27 @@ class _ProfileViewState extends State<ProfileView> {
 
       if (selectedImage == null || !mounted) return;
 
-      setState(() {
-        _profileImage = File(selectedImage.path);
-      });
+      final success = await _viewModel.uploadProfilePhoto(
+        File(selectedImage.path),
+      );
 
-      _showMessage('Foto de perfil actualizada');
+      if (!mounted) return;
+
+      if (success) {
+        _showMessage('Foto de perfil guardada correctamente');
+      } else {
+        _showMessage(
+          _viewModel.errorMessage ??
+              'No se pudo guardar la fotografía',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       _showMessage('No se pudo seleccionar la imagen');
+      debugPrint('Error al seleccionar foto: $e');
     }
   }
+
 
   // ============================================================
   // CAMBIAR CONTRASEÑA
@@ -96,11 +109,15 @@ class _ProfileViewState extends State<ProfileView> {
 
     // Actualiza los requisitos mientras se escribe.
     final newPasswordNotifier = ValueNotifier<String>('');
+    final confirmPasswordNotifier = ValueNotifier<String>('');
 
     // Controla si se muestran las contraseñas.
     final currentVisible = ValueNotifier<bool>(false);
     final newVisible = ValueNotifier<bool>(false);
     final confirmVisible = ValueNotifier<bool>(false);
+
+    // Controla el scroll del diálogo.
+    final dialogScrollController = ScrollController();
 
     try {
       final result = await showDialog<Map<String, String>>(
@@ -122,9 +139,15 @@ class _ProfileViewState extends State<ProfileView> {
             contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             content: SizedBox(
               width: double.maxFinite,
-              child: SingleChildScrollView(
+              child: Scrollbar(
+                controller: dialogScrollController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                controller: dialogScrollController,
+                padding: const EdgeInsets.only(right: 8),
                 child: Form(
                   key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,6 +288,9 @@ class _ProfileViewState extends State<ProfileView> {
                           return TextFormField(
                             controller: confirmController,
                             obscureText: !visible,
+                            onChanged: (value) {
+                              confirmPasswordNotifier.value = value;
+                            },
                             decoration: _passwordInputDecoration(
                               label: 'Confirmar contraseña',
                               icon: Icons.verified_user_outlined,
@@ -290,6 +316,7 @@ class _ProfileViewState extends State<ProfileView> {
                     ],
                   ),
                 ),
+                ),
               ),
             ),
             actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -303,24 +330,36 @@ class _ProfileViewState extends State<ProfileView> {
                   style: TextStyle(color: AppColors.primary),
                 ),
               ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  if (!formKey.currentState!.validate()) return;
+              ValueListenableBuilder<String>(
+                valueListenable: confirmPasswordNotifier,
+                builder: (context, confirmValue, child) {
+                  final isReady = confirmValue.isNotEmpty &&
+                      confirmValue == newController.text;
 
-                  Navigator.pop(dialogContext, {
-                    'current': currentController.text,
-                    'new': newController.text,
-                    'confirm': confirmController.text,
-                  });
+                  return FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                      AppColors.primary.withValues(alpha: 0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: !isReady
+                        ? null
+                        : () {
+                      if (!formKey.currentState!.validate()) return;
+
+                      Navigator.pop(dialogContext, {
+                        'current': currentController.text,
+                        'new': newController.text,
+                        'confirm': confirmController.text,
+                      });
+                    },
+                    child: const Text('Guardar'),
+                  );
                 },
-                child: const Text('Guardar'),
               ),
             ],
           );
@@ -347,9 +386,11 @@ class _ProfileViewState extends State<ProfileView> {
       confirmController.dispose();
 
       newPasswordNotifier.dispose();
+      confirmPasswordNotifier.dispose();
       currentVisible.dispose();
       newVisible.dispose();
       confirmVisible.dispose();
+      dialogScrollController.dispose();
     }
   }
 
@@ -816,15 +857,17 @@ class _ProfileViewState extends State<ProfileView> {
                           ],
                         ),
                         alignment: Alignment.center,
+
                         child: ClipOval(
-                          child: _profileImage != null
-                              ? Image.file(
-                                  _profileImage!,
-                                  width: 108,
-                                  height: 108,
-                                  fit: BoxFit.cover,
-                                )
-                              : Text(
+                          child: _viewModel.avatarUrl != null
+                              ? Image.network(
+                            _viewModel.avatarUrl!,
+                            width: 108,
+                            height: 108,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
                                   _getInitials(user),
                                   style: const TextStyle(
                                     color: AppColors.primary,
@@ -832,7 +875,21 @@ class _ProfileViewState extends State<ProfileView> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                              );
+                            },
+                          )
+                              : Center(
+                            child: Text(
+                              _getInitials(user),
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
+
                       ),
 
                       Positioned(

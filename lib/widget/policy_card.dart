@@ -3,31 +3,28 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../model/policy_model.dart';
 
-class PolicyCard extends StatelessWidget {
-  final PolicyModel policy;
+String _formatMoney(double amount) {
+  final parts = amount.toStringAsFixed(2).split('.');
 
-  const PolicyCard({super.key, required this.policy});
+  final formatted = parts[0].replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (match) => ',',
+  );
 
-  String _formatMoney(double amount) {
-    final parts = amount.toStringAsFixed(2).split('.');
+  return '\$$formatted.${parts[1]}';
+}
 
-    final formatted = parts[0].replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => ',',
-    );
+String _formatDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
 
-    return '\$$formatted.${parts[1]}';
-  }
+  return '$day/$month/${date.year}';
+}
 
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-
-    return '$day/$month/${date.year}';
-  }
-
-  void _showPolicyDetails(BuildContext context) {
-    showModalBottomSheet<void>(
+// Compartida con PolicyAccountCard para que ambas tarjetas
+// abran el mismo detalle de póliza.
+void showPolicyDetails(BuildContext context, PolicyModel policy) {
+  showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -184,39 +181,44 @@ class PolicyCard extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
+Widget _detailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 9),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
             ),
           ),
+        ),
 
-          const SizedBox(width: 12),
+        const SizedBox(width: 12),
 
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                color: AppColors.text,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
+class PolicyCard extends StatelessWidget {
+  final PolicyModel policy;
+
+  const PolicyCard({super.key, required this.policy});
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +227,7 @@ class PolicyCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => _showPolicyDetails(context),
+        onTap: () => showPolicyDetails(context, policy),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(

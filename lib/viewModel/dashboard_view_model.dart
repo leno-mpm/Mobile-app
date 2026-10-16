@@ -3,19 +3,24 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../model/account_model.dart';
+import '../model/policy_model.dart';
 import '../model/transaction_model.dart';
 import '../model/user_model.dart';
 import '../service/account_service.dart';
+import '../service/policy_service.dart';
 
 class DashboardViewModel extends ChangeNotifier {
   final AccountService _accountService;
+  final PolicyService _policyService;
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  DashboardViewModel(this._accountService);
+  DashboardViewModel(this._accountService, this._policyService);
 
   List<AccountModel> _accounts = [];
   List<TransactionModel> _transactions = [];
+  List<PolicyModel> _policies = [];
   UserModel? _user;
+  String? _avatarUrl;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -26,7 +31,12 @@ class DashboardViewModel extends ChangeNotifier {
   List<TransactionModel> get transactions =>
       List.unmodifiable(_transactions);
 
+  List<PolicyModel> get policies =>
+      List.unmodifiable(_policies);
+
   UserModel? get user => _user;
+
+  String? get avatarUrl => _avatarUrl;
 
   bool get isLoading => _isLoading;
 
@@ -66,7 +76,7 @@ class DashboardViewModel extends ChangeNotifier {
           .from('profiles')
           .select(
         'id, username, first_name, last_name, '
-            'email, phone, identification',
+            'email, phone, identification, avatar_path',
       )
           .eq('id', userId)
           .maybeSingle();
@@ -85,9 +95,14 @@ class DashboardViewModel extends ChangeNotifier {
         identification: profile['identification'] as String,
       );
 
+      await _loadAvatar(profile['avatar_path'] as String?);
+
       // Obtener las cuentas bancarias reales.
       _accounts =
       await _accountService.getAccountsByUser(userId);
+
+      // Obtener las pólizas de inversión del usuario.
+      _policies = await _policyService.getPoliciesByUser(userId);
 
       // Obtener las transacciones de cada cuenta.
       final List<TransactionModel> allTransactions = [];
@@ -109,6 +124,8 @@ class DashboardViewModel extends ChangeNotifier {
       _user = null;
       _accounts = [];
       _transactions = [];
+      _policies = [];
+      _avatarUrl = null;
 
       _errorMessage = 'No se pudo cargar el Dashboard';
 
@@ -116,6 +133,22 @@ class DashboardViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadAvatar(String? path) async {
+    _avatarUrl = null;
+
+    if (path == null || path.isEmpty) {
+      return;
+    }
+
+    try {
+      _avatarUrl = await _supabase.storage
+          .from('profile-photos')
+          .createSignedUrl(path, 3600);
+    } catch (e) {
+      debugPrint('Error al recuperar la foto: $e');
     }
   }
 }
