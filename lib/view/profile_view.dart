@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../core/app_lifecycle_guard.dart';
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../model/transaction_model.dart';
@@ -11,6 +12,7 @@ import '../viewModel/profile_view_model.dart';
 import '../viewModel/security_view_model.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import 'movements_view.dart';
+import 'payments_view.dart';
 import 'policies_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -65,6 +67,10 @@ class _ProfileViewState extends State<ProfileView> {
   Future<void> _changeProfilePhoto() async {
     if (_viewModel.isUploadingPhoto) return;
 
+    // Abrir la galería pausa la app (Android); sin esto, el cierre de
+    // sesión por "salir de la app" se dispararía antes de volver.
+    AppLifecycleGuard.isSuppressed = true;
+
     try {
       final selectedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -92,6 +98,8 @@ class _ProfileViewState extends State<ProfileView> {
       if (!mounted) return;
       _showMessage('No se pudo seleccionar la imagen');
       debugPrint('Error al seleccionar foto: $e');
+    } finally {
+      AppLifecycleGuard.isSuppressed = false;
     }
   }
 
@@ -776,7 +784,10 @@ class _ProfileViewState extends State<ProfileView> {
             return;
           }
 
-          _showMessage('Pagos estará disponible próximamente');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const PaymentsView()),
+          );
         },
       ),
 

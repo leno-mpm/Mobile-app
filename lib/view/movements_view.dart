@@ -6,6 +6,7 @@ import '../model/account_model.dart';
 import '../model/transaction_model.dart';
 import '../widget/dashboard_bottom_nav.dart';
 import '../widget/transaction_tile.dart';
+import 'payments_view.dart';
 import 'transaction_detail_view.dart';
 
 class MovementsView extends StatefulWidget {
@@ -81,12 +82,6 @@ class _MovementsViewState extends State<MovementsView> {
     return transactions;
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature estará disponible próximamente')),
-    );
-  }
-
   // Navegación entre las pestañas principales.
   void _onNavigationSelected(int index) {
     if (index == 1) {
@@ -103,7 +98,10 @@ class _MovementsViewState extends State<MovementsView> {
     }
 
     if (index == 2) {
-      _showComingSoon('Pagos');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const PaymentsView()),
+      );
       return;
     }
 

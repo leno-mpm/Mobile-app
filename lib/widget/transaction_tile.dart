@@ -43,6 +43,9 @@ class TransactionTile extends StatelessWidget {
       case 'ingresos':
         return Icons.account_balance_wallet_outlined;
 
+      case 'inversiones':
+        return Icons.trending_up_rounded;
+
       default:
         return Icons.swap_horiz_rounded;
     }
@@ -71,6 +74,9 @@ class TransactionTile extends StatelessWidget {
       case 'ingresos':
         return AppColors.secondary;
 
+      case 'inversiones':
+        return const Color(0xFF1E7F64);
+
       default:
         return AppColors.textSecondary;
     }
@@ -97,6 +103,9 @@ class TransactionTile extends StatelessWidget {
         return const Color(0xFFE8EEF8);
 
       case 'ingresos':
+        return const Color(0xFFE3F4EE);
+
+      case 'inversiones':
         return const Color(0xFFE3F4EE);
 
       default:

@@ -15,10 +15,43 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final LoginViewModel _viewModel = LoginViewModel();
 
+  bool _welcomeBackHandled = false;
+
   @override
   void dispose() {
     _viewModel.dispose();
     super.dispose();
+  }
+
+  // ==========================================
+  // BIENVENIDA AL VOLVER DESDE CREAR USUARIO
+  // ==========================================
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_welcomeBackHandled) return;
+    _welcomeBackHandled = true;
+
+    final username = ModalRoute.of(context)?.settings.arguments;
+
+    if (username is! String) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      _viewModel.userController.text = username;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.secondary,
+          content: Text(
+            '¡Registro completado! Ahora inicia sesión con $username.',
+          ),
+        ),
+      );
+    });
   }
 
   // ==========================================
@@ -44,37 +77,19 @@ class _LoginViewState extends State<LoginView> {
   }
 
   // ==========================================
-  // REGISTRO DE NUEVOS USUARIOS
+  // CREAR USUARIO Y CONTRASEÑA / SOLICITAR PRODUCTO
   // ==========================================
 
-  Future<void> _onRegisterPressed() async {
+  void _onCreateUserPressed() {
     if (_viewModel.isLoading) return;
 
-    final result = await Navigator.pushNamed(
-      context,
-      AppRoutes.register,
-    );
+    Navigator.pushNamed(context, AppRoutes.createUser);
+  }
 
-    if (!mounted) return;
+  void _onRequestProductPressed() {
+    if (_viewModel.isLoading) return;
 
-    if (result is String) {
-      final username = result;
-
-      _viewModel.userController.text = username;
-      _viewModel.passwordController.clear();
-      _viewModel.clearError();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.secondary,
-          content: Text(
-            '¡Registro completado! '
-                'Revisa tu correo si necesitas confirmar tu cuenta. '
-                'Luego inicia sesión con $username.',
-          ),
-        ),
-      );
-    }
+    Navigator.pushNamed(context, AppRoutes.requestProduct);
   }
 
   // ==========================================
@@ -187,7 +202,19 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
 
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'Bienvenido. Para comenzar, inicia sesión con tu '
+                    'usuario y contraseña.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
 
                   // ==========================================
                   // NOMBRE DE USUARIO
@@ -401,34 +428,63 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 28),
 
                   // ==========================================
-                  // REGISTRO DE NUEVOS USUARIOS
+                  // CREAR USUARIO / SOLICITAR PRODUCTO
                   // ==========================================
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        '¿No tienes cuenta? ',
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        disabledForegroundColor: Colors.grey,
+                        side: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _viewModel.isLoading
+                          ? null
+                          : _onCreateUserPressed,
+                      child: const Text(
+                        'Crear usuario y contraseña',
                         style: TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 15,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                  ),
 
-                      GestureDetector(
-                        onTap: _viewModel.isLoading
-                            ? null
-                            : _onRegisterPressed,
-                        child: const Text(
-                          'Crea tu cuenta',
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        disabledForegroundColor: Colors.grey,
+                        side: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                    ],
+                      onPressed: _viewModel.isLoading
+                          ? null
+                          : _onRequestProductPressed,
+                      child: const Text(
+                        'Solicitar producto',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 24),

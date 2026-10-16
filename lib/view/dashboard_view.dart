@@ -19,6 +19,7 @@ import '../widget/policy_account_card.dart';
 import '../widget/transaction_tile.dart';
 
 import 'movements_view.dart';
+import 'payments_view.dart';
 import 'transaction_detail_view.dart';
 
 class DashboardView extends StatefulWidget {
@@ -148,12 +149,13 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // ==========================================
-  // FUNCIONALIDADES PRÓXIMAS
+  // PAGOS
   // ==========================================
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature estará disponible próximamente')),
+  void _openPayments() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const PaymentsView()),
     );
   }
 
@@ -179,7 +181,7 @@ class _DashboardViewState extends State<DashboardView> {
           }
 
           if (index == 2) {
-            _showComingSoon('Pagos');
+            _openPayments();
             return;
           }
 

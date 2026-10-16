@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/app_lifecycle_guard.dart';
 import '../core/theme/app_colors.dart';
 import '../model/account_model.dart';
 
@@ -108,6 +109,11 @@ class _AccountCardState extends State<AccountCard>
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
 
+    // Abrir la hoja de compartir del sistema pausa la app; sin esto,
+    // el cierre de sesión por "salir de la app" se dispararía antes
+    // de que el usuario termine de compartir.
+    AppLifecycleGuard.isSuppressed = true;
+
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -121,6 +127,8 @@ class _AccountCardState extends State<AccountCard>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo abrir el menú de compartir')),
       );
+    } finally {
+      AppLifecycleGuard.isSuppressed = false;
     }
   }
 
