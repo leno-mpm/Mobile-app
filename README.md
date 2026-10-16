@@ -29,16 +29,19 @@ Su objetivo es facilitar la consulta de información financiera desde una interf
 
 | Módulo | Funcionalidad |
 | --- | --- |
-| 🔐 Autenticación | Registro de usuarios e inicio de sesión con nombre de usuario y contraseña |
+| 🔐 Iniciar sesión | Inicio de sesión con nombre de usuario y contraseña |
+| 🆕 Crear usuario y contraseña | Alta de credenciales en 4 pasos: verificar cédula, confirmar datos personales, situación financiera (simulada, no se guarda) y elegir usuario/contraseña. Solo disponible para cédulas que ya tengan un producto solicitado |
+| 🏦 Solicitar producto | Apertura de cuenta de ahorros, cuenta corriente o póliza para una cédula, con validación simulada de buró crediticio. Si la cédula no tiene usuario todavía, termina llevando a "Crear usuario y contraseña" |
 | 🏠 Inicio | Resumen del saldo total y cuentas asociadas al usuario |
 | 💳 Cuentas | Consulta de cuentas de ahorro y corriente |
-| 📊 Movimientos | Historial de transacciones, ingresos y egresos |
-| 📄 Pólizas | Consulta de inversiones a plazo fijo y estimaciones de interés |
-| 👤 Perfil | Consulta de información personal |
-| 🛡️ Seguridad | Cambio de contraseña y cierre de sesión mediante Supabase Auth |
-| 🔄 Sesión | Persistencia de la sesión entre aperturas de la aplicación |
+| 📊 Movimientos | Historial de transacciones, ingresos y egresos (incluye pagos de servicios y aperturas de póliza) |
+| 📄 Pólizas | Consulta de pólizas existentes y apertura de nuevas: monto mínimo $100, plazo de 1 mes a 3 años, con cálculo de ganancia estimada antes de confirmar |
+| 💸 Pagos | Pago de servicios (agua, luz, internet, Netflix — fijos en el código) desde cualquiera de las cuentas del usuario |
+| 👤 Perfil | Consulta de información personal, foto de perfil y pólizas |
+| 🛡️ Seguridad | Cambio de contraseña mediante Supabase Auth |
+| 🔄 Sesión | La sesión vive solo en memoria: se cierra automáticamente al salir de la app o pasarla a segundo plano, no persiste entre aperturas |
 
-**En desarrollo / fuera del alcance actual:** autenticación biométrica real, transferencias y pagos bancarios operativos.
+**En desarrollo / fuera del alcance actual:** autenticación biométrica real, transferencias entre cuentas propias o a terceros.
 
 ## Tecnologías
 
@@ -79,15 +82,28 @@ Mint utiliza el patrón **MVVM**, separando la interfaz de usuario, la lógica d
 ```text
 lib/
 ├── core/
-│   ├── routes/          # Navegación
-│   └── theme/           # Colores y estilos
+│   ├── app_lifecycle_guard.dart   # evita cerrar sesión por pausas del sistema (galería, compartir)
+│   ├── constants/                 # tipos de producto, mínimos, listas fijas (situación laboral, etc.)
+│   ├── routes/                    # Navegación
+│   └── theme/                     # Colores y estilos
 ├── model/               # Modelos de datos
-├── service/             # Servicios e integración con Supabase
-├── view/                # Pantallas
+├── service/             # Servicios e integración con Supabase y Edge Functions
+├── view/
+│   ├── create_user/       # Flujo "Crear usuario y contraseña" (4 pasos)
+│   ├── product_request/   # Flujo "Solicitar producto" (cuenta o póliza)
+│   └── ...                # Dashboard, Movimientos, Pagos, Perfil, Pólizas
 ├── viewModel/            # Lógica y estado de las vistas
 ├── widget/              # Componentes reutilizables
 ├── mock/                # Datos antiguos de referencia (no activos)
-└── main.dart            # Inicialización y configuración
+└── main.dart            # Inicialización, sesión y navegación raíz
+
+supabase/
+├── functions/
+│   ├── check-identification/   # Pública: ¿esta cédula ya tiene usuario/producto?
+│   ├── request-product/        # Pública: crea cuentas/pólizas para una cédula
+│   └── make-payment/           # Requiere sesión: paga un servicio desde una cuenta propia
+└── migrations/
+    └── 20261015_product_requests.sql   # Esquema, permisos y función de débito atómico
 ```
 
 > La carpeta `mock/` puede conservarse como referencia histórica; las funcionalidades principales consultan Supabase.
@@ -99,11 +115,34 @@ La aplicación utiliza las siguientes tablas:
 | Tabla | Contenido |
 | --- | --- |
 | `profiles` | Información de los usuarios |
-| `accounts` | Cuentas bancarias y saldos |
-| `transactions` | Movimientos asociados a las cuentas |
-| `policies` | Pólizas e inversiones a plazo fijo |
+| `accounts` | Cuentas bancarias y saldos. `user_id` es nulo mientras el producto está pendiente de un usuario (ver Edge Functions) |
+| `transactions` | Movimientos asociados a las cuentas (incluye pagos de servicios y aperturas de póliza) |
+| `policies` | Pólizas e inversiones a plazo fijo, con `source_account_id` apuntando a la cuenta que las financia |
 
-Las consultas se realizan utilizando el usuario autenticado. Las políticas **RLS** deben mantenerse habilitadas y correctamente configuradas para impedir el acceso a registros de otros usuarios.
+Las consultas desde la app se realizan utilizando el usuario autenticado. Las políticas **RLS** deben mantenerse habilitadas y correctamente configuradas para impedir el acceso a registros de otros usuarios.
+
+## ⚡ Edge Functions y migración de Supabase
+
+Los flujos de **Crear usuario**, **Solicitar producto** y **Pagos** necesitan operaciones que un cliente autenticado normal no puede hacer (crear una cuenta antes de que exista un usuario, o escribir el saldo de una cuenta ajena a `auth.uid()`). Para eso existen 3 Edge Functions en `supabase/functions/`:
+
+| Función | Verifica sesión | Uso |
+| --- | --- | --- |
+| `check-identification` | No | Dado un número de cédula, indica si ya tiene usuario y qué cuentas/pólizas tiene |
+| `request-product` | No | Crea una cuenta o póliza para una cédula; vincula el producto al usuario si ya existe uno |
+| `make-payment` | Sí | Paga un servicio desde una cuenta del usuario autenticado, validando que la cuenta sea suya |
+
+**Configuración inicial (una sola vez por proyecto Supabase):**
+
+1. Aplica `supabase/migrations/20261015_product_requests.sql` en el **SQL Editor** del dashboard. Agrega las columnas/permisos necesarios y la función `debit_account_balance` (débito atómico de saldo, evita condiciones de carrera).
+2. Despliega las funciones:
+
+```bash
+supabase functions deploy check-identification --no-verify-jwt
+supabase functions deploy request-product --no-verify-jwt
+supabase functions deploy make-payment
+```
+
+`check-identification` y `request-product` se despliegan **sin verificación de JWT** porque se llaman antes de que el usuario tenga sesión (durante "Solicitar producto"). `make-payment` sí requiere sesión: valida el token del usuario dentro del propio código, independientemente de ese interruptor.
 
 ## Instalación y ejecución
 
@@ -139,7 +178,11 @@ Verifica que la URL configurada en `Supabase.initialize()` corresponda a tu proy
 
 **Nunca incluyas la `service_role` key en la aplicación Flutter ni la subas al repositorio.** La publishable key es pública, pero la seguridad de los datos depende de la autenticación y las políticas RLS.
 
-### 4. Ejecutar en desarrollo
+### 4. Aplicar la migración y desplegar las Edge Functions
+
+Requerido para que "Crear usuario", "Solicitar producto" y "Pagos" funcionen — ver [Edge Functions y migración de Supabase](#-edge-functions-y-migración-de-supabase) más arriba para el detalle de cada una.
+
+### 5. Ejecutar en desarrollo
 
 ```bash
 flutter run --dart-define=SUPABASE_PUBLISHABLE_KEY=TU_PUBLISHABLE_KEY
@@ -151,7 +194,7 @@ Si el emulador presenta problemas de renderizado con Impeller, puedes probar:
 flutter run --no-enable-impeller --dart-define=SUPABASE_PUBLISHABLE_KEY=TU_PUBLISHABLE_KEY
 ```
 
-### 5. Verificar el código
+### 6. Verificar el código
 
 ```bash
 flutter analyze
@@ -175,14 +218,20 @@ La aplicación instalada necesita conexión a internet para comunicarse con Supa
 
 ## 🧪 Pruebas recomendadas
 
-- [ ] Registrar un usuario nuevo.
+- [ ] Solicitar una cuenta de ahorros/corriente con una cédula nueva y completar "Crear usuario y contraseña" desde ahí.
+- [ ] Solicitar una póliza con una cédula sin cuentas (debe bloquear y pedir solicitar cuenta primero).
+- [ ] Solicitar una póliza con una cédula con 2 cuentas (debe pedir elegir la cuenta de origen).
+- [ ] Solicitar una póliza con monto menor a $100 o mayor al saldo disponible (debe rechazar con mensaje claro).
+- [ ] Intentar "Crear usuario y contraseña" con una cédula sin productos, y con una que ya tiene usuario (debe bloquear en ambos casos).
 - [ ] Iniciar sesión con nombre de usuario y contraseña.
-- [ ] Consultar cuentas y saldos del usuario autenticado.
-- [ ] Visualizar movimientos y pólizas.
+- [ ] Pagar un servicio (Agua, Luz, Internet, Netflix) desde Pagos y verificar que el saldo se descuenta y aparece como egreso en Movimientos.
+- [ ] Navegar entre Inicio, Movimientos, Pagos y Perfil usando la barra inferior desde cualquiera de las 4 pantallas.
+- [ ] Consultar cuentas, saldos, movimientos y pólizas del usuario autenticado.
 - [ ] Confirmar que un usuario no puede acceder a los datos de otro.
 - [ ] Cambiar la contraseña e iniciar sesión con la nueva.
-- [ ] Cerrar sesión y comprobar que no se pueda volver a pantallas protegidas.
-- [ ] Reiniciar la aplicación y comprobar la persistencia de sesión.
+- [ ] Cerrar sesión manualmente y comprobar que no se pueda volver a pantallas protegidas.
+- [ ] Pasar la app a segundo plano (botón Home) y volver: debe pedir iniciar sesión de nuevo.
+- [ ] Cambiar la foto de perfil y compartir los datos de una cuenta: no deben cerrar la sesión a mitad de la acción.
 - [ ] Instalar y probar el APK en un dispositivo Android.
 
 La opción de **huella digital** aún no implementa autenticación biométrica real.
